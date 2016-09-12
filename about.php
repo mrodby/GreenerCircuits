@@ -8,10 +8,6 @@
   </head>
   <body>
 
-    <?php
-      include 'nav.php';
-    ?>
-
     <h1>
       Greener Circuits
     </h1>

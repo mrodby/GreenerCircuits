@@ -135,6 +135,11 @@ if ($conn->connect_error)
             echo "No channels in database";
           }
         ?>
+        <br/>
+        <ul>
+        <li><a href='about.php'>About</a></li>
+        </ul>
+
       </div>
 
       <div id="chart_div" style="height:500px"></div>
