@@ -1,0 +1,2 @@
+sudo cp *.php main.css /var/www/html/
+sudo cp *.jpg /var/www/html/images/

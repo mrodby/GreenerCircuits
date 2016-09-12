@@ -20,7 +20,7 @@
       My house has two 24-circuit Powerhouse Dynamics eMonitor power line monitors.
     </p>
     <p style="text-align: center">
-      (eMonitor photo here)
+      <img src="http://www.energycircle.com/sites/default/files/images/stories/1124/onthetable.jpg" alt="eMonitor">
     </p>
     <p>
       Each monitor contains a web server that will show the current power usage of one circuit. Powerhouse Dynamics
@@ -36,7 +36,7 @@
       and third party libraries such as Beautiful Soup and Google Charts. All of the HTML, CSS, and PHP is hand-crafted.
     </p>
     <p style="text-align: center">
-      (Raspberry Pi Zero photo here)
+      <img src="images/PiZero.jpg" alt="Raspberry Pi Zero">
     </p>
     <p>
       This whole project runs on a Raspberry Pi Zero with an 8 GB Micro-SD card.
