@@ -8,6 +8,7 @@
   </head>
   <body>
 
+    <a href='index.php'>&lt; Home</a>
     <h1>
       Greener Circuits
     </h1>

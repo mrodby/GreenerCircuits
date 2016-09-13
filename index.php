@@ -24,14 +24,14 @@ if ($conn->connect_error)
     <style>
 
       div.content {
-        margin-left: 150px;
+        margin-left: 200px;
       }
       div.side {
         position: fixed;
         height: 100%;
         top: 0;
         left: 0;
-        width: 180px;
+        width: 200px;
         padding: 10px;
       }
       ul {
@@ -105,7 +105,8 @@ if ($conn->connect_error)
         ]);
 
         var options = {
-          title: "<?php echo $name ?>"
+          title: "<?php echo $name /* note: do not call htmlspecialchars here */ ?>",
+          legend: { position: "none" }
         };
         var chart = new google.visualization.ColumnChart(document.getElementById("chart_div"));
         chart.draw(data, options);
@@ -118,19 +119,20 @@ if ($conn->connect_error)
       <div class="side">
 
         <?php
-          $sql = "SELECT * FROM channel WHERE inuse=1 ORDER BY name";
+          // populate left side of window with names and latest usage
+          $sql = "SELECT channum, name, last * mult AS watts FROM channel WHERE inuse=1 ORDER BY name";
           $result = $conn->query($sql);
 
           if ($result->num_rows > 0) {
-            echo "<ul>";
+            echo "<table>";
             while($row = $result->fetch_assoc()) {
-              echo "<li>" . "<a href='index.php?" .
+              echo "<tr><td align='right'>" . $row["watts"] . "</td><td>" . "<a href='index.php?" .
                 "channel=" . $row["channum"] .
                 "&interval=" . $interval .
                 "&hours=" . $hours .
-                "'>" . $row["name"] . "</a></li>";
+                "'>" . htmlspecialchars($row["name"]) . "</a></td></tr>";
             }
-            echo "</ul>";
+            echo "</table>";
           } else {
             echo "No channels in database";
           }

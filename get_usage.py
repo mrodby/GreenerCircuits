@@ -25,6 +25,7 @@ while True:
     time.sleep(0.5)
 
   cur = db.cursor()
+  cur.execute("START TRANSACTION")
   # get web page(s) from eMonitor(s)
   nonBreakSpace = u'\xa0'
   for idx, ip in enumerate(ips):
@@ -49,6 +50,9 @@ while True:
         watts = cells[2].find(text=True)
         sql = "INSERT INTO used VALUES (" + num + ", " + watts + ", '" + now.isoformat() + "')"
         cur.execute(sql)
+        sql = "UPDATE channel SET last=" + watts + ", stamp='" + now.isoformat() + "' WHERE channum=" + num
+        cur.execute(sql)
+  cur.execute("COMMIT");
 
   # done with this pass - close and commit
   cur.close()
