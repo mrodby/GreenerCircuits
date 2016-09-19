@@ -1,33 +1,11 @@
 #!/usr/bin/python
 import MySQLdb
-import requests
-import cgi
 import datetime
 import time
 import sys
-import os
-
-# function to send a notification via prowl.com
-# - call with event = IP address, desc = what happened
-def prowl(event, desc):
-  app = cgi.escape('Greener Circuits')
-  url = 'http://api.prowlapp.com/publicapi/add?' + \
-    'apikey=' + prowl_key + \
-    '&application=' + cgi.escape("Greener Circuits") + \
-    '&event=' + cgi.escape(event) + \
-    '&description=' + cgi.escape(desc)
-  requests.get(url)
 
 print '***** Starting Greener Circuits Database Daemon *****'
 sys.stdout.flush()
-
-# if prowl_key is set, copy to global; if not, complain and exit
-if not 'prowl_key' in os.environ:
-  print 'prowl_key not set in environment'
-  quit()
-prowl_key = os.environ['prowl_key']
-if prowl_key[-1] == ':':      # TODO: when started from /etc/init.d a colon is appended - find out why
-  prowl_key = prowl_key[:-1]
 
 # connect to database
 db = MySQLdb.connect(host="localhost",
@@ -80,10 +58,10 @@ while True:
   # start a transaction to ensure nobody else sees inconsistent data from this consolidation
   cur.execute("START TRANSACTION")
 
-  # consolidate rows from this time period
+  # consolidate rows from this time period into 1-minute intervals
   # - clear scratchpad table
   cur.execute("DELETE FROM scratchpad")
-  # - consolidate into scratchpad table
+  # - consolidate appropriate rows into scratchpad table
   sql = "INSERT INTO scratchpad " +\
           "SELECT " +\
              "channum, " +\
@@ -107,10 +85,6 @@ while True:
   # all done - commit transaction
   cur.execute("COMMIT");
 
-  # done with this pass - close and commit
-  cur.close()
-  db.commit() # TODO: is this necessary?
-
   print "Done: " + now.isoformat()[:19]
 
   # Once an hour delete rows older than number of days specified in settings table
@@ -123,7 +97,11 @@ while True:
   if days == None:
     days = 0
   if days != 0:
-    sql = "DELETE FROM used WHERE stamp < DATE_ADD(now, INTERVAL -(" + str(days) + " DAY)"
+    sql = "DELETE FROM used WHERE stamp < DATE_ADD(now, INTERVAL -" + str(days) + " DAY)"
     print sql
+    cur.execute(sql)
 
+  # done with this pass - close and commit
+  cur.close()
+  db.commit() # TODO: is this necessary?
 
