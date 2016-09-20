@@ -97,8 +97,9 @@ while True:
   if days == None:
     days = 0
   if days != 0:
-    sql = "DELETE FROM used WHERE stamp < DATE_ADD(now, INTERVAL -" + str(days) + " DAY)"
+    sql = "DELETE FROM used WHERE stamp < DATE_ADD('" + end_stamp.isoformat() + "', INTERVAL -" + str(days) + " DAY)"
     print sql
+    sys.stdout.flush()
     cur.execute(sql)
 
   # done with this pass - close and commit

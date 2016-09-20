@@ -4,8 +4,11 @@ import requests
 from bs4 import BeautifulSoup
 import cgi
 
-ips = ['192.168.1.124', '192.168.1.120']
+# get IP addresses or hostnames from eMonitors file
+with open('eMonitors') as f:
+  ips = f.read().splitlines()
 
+# connect to database
 db = MySQLdb.connect(host="localhost",
                      user="eMonitor",
 #                     passwd="xxxxxxxx",
@@ -13,9 +16,6 @@ db = MySQLdb.connect(host="localhost",
                      read_default_file="~/.my.cnf")
 
 cur = db.cursor()
-
-# delete all entries in table
-cur.execute("DELETE FROM channel")
 
 # get web page from eMonitor
 nonBreakSpace = u'\xa0'
@@ -35,7 +35,8 @@ for idx, ip in enumerate(ips):
       num = str(int(cells[0].find(text=True)) + 100 * idx)
       name = cells[1].find(text=True).strip(nonBreakSpace)
       watts = cells[2].find(text=True)
-      cur.execute("INSERT INTO channel VALUES (" + num + ", '" + name + "')")
+      cur.execute("DELETE FROM channel WHERE channum=" + num)
+      cur.execute("INSERT INTO channel (channum, name) VALUES (" + num + ", '" + name + "')")
 
 # print new channel contents
 cur.execute("SELECT * FROM channel ORDER BY channum")
