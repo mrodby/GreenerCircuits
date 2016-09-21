@@ -99,7 +99,10 @@ if ($conn->connect_error)
             while($row = mysqli_fetch_array($result)){
               $time = $row['Time'];
               $power = $row['Power'];
-              echo "[new Date('".$row['Time']."Z'),".$row['Power']."],";
+              # note: $time is in the format YYYY-MM-DD HH:MM:SS
+              # - to work in Safari a T needs to be between date and time,
+              #   and for proper time zone adjustment, a 'Z' needs to be appended
+              echo "[new Date('".substr($time,0,10)."T".substr($time,11,5)."Z'),".$power."],";
             }
           ?>
         ]);
