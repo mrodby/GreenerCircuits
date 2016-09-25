@@ -1,15 +1,14 @@
-#!/usr/bin/python
-import MySQLdb
+#!/usr/bin/python3
+import pymysql
 import requests
 from bs4 import BeautifulSoup
-import cgi
 
 # get IP addresses or hostnames from eMonitors file
 with open('eMonitors') as f:
   ips = f.read().splitlines()
 
 # connect to database
-db = MySQLdb.connect(host="localhost",
+db = pymysql.connect(host="localhost",
                      user="eMonitor",
 #                     passwd="xxxxxxxx",
                      db="eMonitor",
@@ -22,7 +21,7 @@ nonBreakSpace = u'\xa0'
 for idx, ip in enumerate(ips):
   response = requests.get('http://' + ip)
   if response.status_code != 200:
-    print "Invalid HTTP response from", ip + ": ", response.status_code
+    print ("Invalid HTTP response from" + ip + ": " + response.status_code)
     continue
 
 # pass page through Beautiful Soup HTML parser, insert each row into database
@@ -41,7 +40,7 @@ for idx, ip in enumerate(ips):
 # print new channel contents
 cur.execute("SELECT * FROM channel ORDER BY channum")
 for row in cur.fetchall():
-  print row[0], "-->", row[1]
+  print (row[0], "-->", row[1])
 
 # all done - close and commit
 cur.close()
