@@ -1,4 +1,11 @@
 #!/usr/bin/python3
+
+# Component of Greener Circuits:
+# Query eMonitor(s) for the name of each channel and write to database
+# Note: try/catch intentionally not used here because this is intended
+# to only be used interactively, and only once, so any exceptions should
+# be visible and obvious.
+
 import pymysql
 import requests
 from bs4 import BeautifulSoup
@@ -7,16 +14,15 @@ from bs4 import BeautifulSoup
 with open('eMonitors') as f:
   ips = f.read().splitlines()
 
-# connect to database
+# connect to database and get cursor
 db = pymysql.connect(host="localhost",
                      user="eMonitor",
-#                     passwd="xxxxxxxx",
+#                     passwd="xxxxxxxx", - will be filled in from .my.cnf
                      db="eMonitor",
                      read_default_file="~/.my.cnf")
-
 cur = db.cursor()
 
-# get web page from eMonitor
+# get web page(s) from eMonitor(s)
 nonBreakSpace = u'\xa0'
 for idx, ip in enumerate(ips):
   response = requests.get('http://' + ip)
@@ -24,8 +30,8 @@ for idx, ip in enumerate(ips):
     print ("Invalid HTTP response from" + ip + ": " + response.status_code)
     continue
 
-# pass page through Beautiful Soup HTML parser, insert each row into database
-# - for channel number, use 100 + index for second eMonitor unit
+  # pass page through Beautiful Soup HTML parser, insert each row into database
+  # - for channel number, use 100 + index for second eMonitor unit
   soup = BeautifulSoup(response.content, "html5lib")
   table = soup.find("table", { "class" : "channel-data" })
   for row in table.findAll("tr"):

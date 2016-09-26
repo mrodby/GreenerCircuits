@@ -24,18 +24,35 @@
       <img src="http://www.energycircle.com/sites/default/files/images/stories/1124/onthetable.jpg" alt="eMonitor">
     </p>
     <p>
-      Each monitor contains a web server that will show the current power usage of one circuit. Powerhouse Dynamics
-      offers an annual subscription to provide history, and lets me analyze that history in many ways.
-      I thought it might be fun to write software to periodically retrieve data from these monitors, store it
-      in a database, and analyze it in ways that Power Dynamics does not offer. For example, I wanted it to
-      notify me if the ceiling fan in our unused bedroom was left on when nobody was in the room. This project
-      is the result.
+      Each monitor contains a web server that will show the current power
+      usage of one circuit. Powerhouse Dynamics offers an annual subscription
+      to provide history, and lets me analyze that history in many ways. I
+      thought it might be fun to write software to periodically retrieve data
+      from these monitors, store it in a database, and analyze it in ways that
+      Power Dynamics does not offer. For example, I wanted it to notify me if
+      the ceiling fan in our unused bedroom was left on when nobody was in the
+      room. This project is the result.
       <br/>
     </p>
     <p>
-      To implement this project I had to learn or brush up on PHP, CSS, HTML, MySQL, Python, Linux system administration,
-      and third party libraries such as Beautiful Soup and Google Charts. All of the HTML, CSS, and PHP is hand-crafted.
+      This project uses PHP, CSS, HTML, MySQL, Python, and third party
+      libraries such as Beautiful Soup and Google Charts. All of the HTML,
+      CSS, and PHP is hand-crafted. Three Python programs continually run in
+      the background:
     </p>
+    <ul>
+      <li>get_usage.py: This retrieves a page from the web server embedded in
+          each eMonitor once every 10 seconds. The web page contains a table
+          of the current power usage for each channel. Each power measurement
+          is stored in a database. If retrieving the page fails too many times
+          in a row, an alert is sent to my cell phone via prowl.com.</li>
+      <li>db_daemon.py: Once each hour this consolidates 10-second records
+          into 1-minute records in the database, and deletes data older than
+          30 days.</li>
+      <li>alerts.py: Once each minute this checks each alert in the alert
+          table. If an alert is newly raised, or if a previously raised alert
+          is resolved, a message is sent to my cell phone via prowl.com.</li>
+    </ul>
     <p style="text-align: center">
       <img src="images/PiZero.jpg" alt="Raspberry Pi Zero">
     </p>
@@ -44,8 +61,9 @@
       <br/>
     </p>
     <p>
-      Choose Channels from the menu bar to see a list of the available channels, then click on a channel name to see how
-      usage has varied for that circuit over the past 24 hours.
+      Click on a channel name to see how usage has varied for that circuit over
+      the past 24 hours. You can change the interval (in seconds) or the time
+      span (in hours) by changing the corresponding parameter in the URL.
     </p>
 
   </body>
