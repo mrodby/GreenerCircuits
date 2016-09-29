@@ -1,11 +1,45 @@
+* {
+  margin: 0px 0px 0px 0px;
+  padding: 0px 0px 0px 0px;
+}
 
-      body, html {
-        padding: 3px 3px 3px 3px;
-        background-color: #D8DBE2;
-        font-family: Verdana, sans-serif;
-        font-size: 11pt;
-      }
+body, html {
+  padding: 3px 3px 3px 3px;
+  background-color: #D8DBE2;
+  font-family: Verdana, sans-serif;
+  font-size: 11pt;
+}
 
-      p {
-        padding: 16px;
-      }
+ul.menu {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #333333;
+}
+
+li.menu {
+  float: left;
+}
+
+li a.menu {
+  display: block;
+  color: white;
+  text-align: center;
+  padding: 16px;
+  text-decoration: none;
+}
+
+li a.menu:hover {
+  background-color: #111111;
+}
+
+p {
+  margin-bottom: 1em;
+}
+
+td, th {
+  margin: 3px 3px 3px 3px;
+  padding: 3px 3px 3px 3px;
+}
+

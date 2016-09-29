@@ -8,7 +8,9 @@
   </head>
   <body>
 
-    <a href='index.php'>&lt; Home</a>
+<?php
+  include 'nav.php';
+?>
     <h1>
       Greener Circuits
     </h1>
@@ -45,13 +47,13 @@
           each eMonitor once every 10 seconds. The web page contains a table
           of the current power usage for each channel. Each power measurement
           is stored in a database. If retrieving the page fails too many times
-          in a row, an alert is sent to my cell phone via prowl.com.</li>
+          in a row, an alert is sent to my cell phone via prowlapp.com.</li>
       <li>db_daemon.py: Once each hour this consolidates 10-second records
           into 1-minute records in the database, and deletes data older than
           30 days.</li>
       <li>alerts.py: Once each minute this checks each alert in the alert
           table. If an alert is newly raised, or if a previously raised alert
-          is resolved, a message is sent to my cell phone via prowl.com.</li>
+          is resolved, a message is sent to my cell phone via prowlapp.com.</li>
     </ul>
     <p style="text-align: center">
       <img src="images/PiZero.jpg" alt="Raspberry Pi Zero">

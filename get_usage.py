@@ -13,7 +13,7 @@ fails = [0, 0]
 max_fails = 90
 inc = 10  # read web page from each eMonitor IP every inc seconds (max 60)
 
-# function to send a notification via prowl.com
+# function to send a notification via prowlapp.com
 # - call with event = IP address, desc = what happened
 def prowl(event, desc):
   app = urllib.parse.quote('Greener Circuits')

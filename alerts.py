@@ -3,7 +3,7 @@
 # Component of Greener Circuits:
 # Once each minute check each entry in the alerts table to see if its conditions have been met.
 # When a condition is met (or when a condition had previously been met but is now resolved),
-# send an alert via prowl.com
+# send an alert via prowlapp.com
 
 import pymysql
 import requests
@@ -13,7 +13,7 @@ import sys
 import os
 import urllib.parse
 
-# function to send a notification via prowl.com
+# function to send a notification via prowlapp.com
 # - call with event = title, desc = what happened
 def prowl(event, desc):
   app = urllib.parse.quote('Greener Circuits')
@@ -62,19 +62,23 @@ while True:
     channum = row[1]
     # set "compare" to the opposite of the condition we are looking for,
     # since our trigger is zero occurrences of "compare" being true
-    # and set msgcomp to the same as the condition we are looking for,
-    # so we can use that in a prowl message.
+    # and set msgzero and msgnonzero to appropriate values to use in
+    # prowlapp messages
     if row[2] == 1:
       compare = '<'
-      msgcomp = '>'
+      msgzero = 'above'
+      msgnonzero = 'fallen below'
     else:
       compare = '>'
-      msgcomp = '<'
+      msgzero = 'below'
+      msgnonzero = 'risen above'
     watts = row[3]
     minutes = row[4]
     start = datetime.datetime.combine(now.date(), datetime.time()) + row[5]
     end = datetime.datetime.combine(now.date(), datetime.time()) + row[6]
     message = row[7]
+    if message != '':
+      message = ' -- ' + message
     alerted = (row[8] != 0)
 
     # if now is outside of the effective time range of this alert, don't check
@@ -87,27 +91,21 @@ while True:
             ' AND watts ' + compare + str(watts)
     cur.execute(sql)
     countrow = cur.fetchone()
-    if countrow[0] == 0:  # if all used rows meet the criteria (i.e. no rows meet the reverse of the criteria), alert!
+    # if all used rows meet the criteria (i.e. no rows meet the reverse of the criteria),
+    # the alert is active - check to see if that condition has changed
+    if (countrow[0] == 0) != alerted:
+      cur.execute('SELECT name FROM channel WHERE channum=' + str(channum))
+      # assumes channel exists -- TODO: handle case where it does not
+      name=cur.fetchone()[0]
       if not alerted:
-        cur.execute('SELECT name FROM channel WHERE channum=' + str(channum))
-        # assumes channel exists -- TODO: handle case where it does not
-        name=cur.fetchone()[0]
-        if message != '':
-          message = '-- ' + message
-        message = name + ': power ' + msgcomp + ' ' + str(watts) + ' watts for more than ' + str(minutes) + ' minutes' + message
+        message = 'Circuit "' + name + '" has been ' + msgzero + ' ' + str(watts) + ' watts for more than ' + str(minutes) + ' minutes' + message
         print ('***** POWER ALERT ******', message)
         prowl ('POWER ALERT', message)
         cur.execute('UPDATE alert SET alerted=1 WHERE id=' + str(id))
-    else:
-      if alerted:
-        cur.execute('SELECT name FROM channel WHERE channum=' + str(channum))
-        # assumes channel exists -- TODO: handle case where it does not
-        name=cur.fetchone()[0]
-        if message != '':
-          message = '-- ' + message
-        message = name + ': power ' + msgcomp + ' ' + str(watts) + ' watts for more than ' + str(minutes) + ' minutes' + message
-        print ('***** power alert resolved *****', message)
-        prowl ('power alert resolved', message)
+      else:
+        message = 'Circuit "' + name + '" has ' + msgnonzero + ' ' + str(watts) + ' watts' + message
+        print ('***** power alert *****', message)
+        prowl ('power alert', message)
         cur.execute('UPDATE alert SET alerted=0 WHERE id=' + str(id))
 
   # done with this pass - close cursor
