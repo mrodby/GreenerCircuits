@@ -23,17 +23,6 @@ if ($conn->connect_error)
   <title>Greener Circuits Power Usage</title>
   <link rel="stylesheet" type="text/css" href="main.css">
   <style>
-
-    div.content {
-      margin-left: 200px;
-    }
-    div.side {
-      position: fixed;
-      height: 100%;
-      left: 0;
-      width: 200px;
-      padding: 10px;
-    }
     ul {
       margin: 0;
       padding: 0;
@@ -41,20 +30,20 @@ if ($conn->connect_error)
     ul li {
       color: #fff;
     }
-    </style>
-    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
-    <script type="text/javascript">
+  </style>
+  <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+  <script type="text/javascript">
 
-      // Load the Visualization API and the corechart package.
-      google.load("visualization", "1", {packages:["corechart"]});
+    // Load the Visualization API and the corechart package.
+    google.load("visualization", "1", {packages:["corechart"]});
 
-      // Set a callback to run when the Google Visualization API is loaded.
-      google.setOnLoadCallback(drawChart);
+    // Set a callback to run when the Google Visualization API is loaded.
+    google.setOnLoadCallback(drawChart);
 
-      // The callback itself
-      function drawChart() {
-        var data = google.visualization.arrayToDataTable([
-          ['Time', 'Watts'],
+    // The callback itself
+    function drawChart() {
+      var data = google.visualization.arrayToDataTable([
+        ['Time', 'Watts'],
         <?php
           if (isset($_GET["channel"])) {
             $chan = $_GET["channel"];
@@ -100,7 +89,7 @@ if ($conn->connect_error)
             $time = $row['Time'];
             $power = $row['Power'];
             # note: $time is in the format YYYY-MM-DD HH:MM:SS
-            # - to work in Safari a T needs to be between date and time,
+            # - to work in Safari and IE a T needs to be between date and time,
             #   and for proper time zone adjustment, a 'Z' needs to be appended
             echo "[new Date('".substr($time,0,10)."T".substr($time,11,5)."Z'),".$power."],";
           }
@@ -109,6 +98,7 @@ if ($conn->connect_error)
 
       var options = {
         title: "<?php echo $name /* note: do not call htmlspecialchars here */ ?>",
+        chartArea:{left:50,top:30,right:10,bottom:10,width:"100%",height:"100%"},
         legend: { position: "none" }
       };
       var chart = new google.visualization.ColumnChart(document.getElementById("chart_div"));
@@ -123,35 +113,36 @@ if ($conn->connect_error)
   ?>
   <h1><br/>Greener Circuits Power Usage</h2>
   <br/>
-  <div class="content">
-    <div class="side">
 
-      <?php
-        // populate left side of window with names and latest usage
-        $sql = "SELECT channum, name, last * mult AS watts FROM channel WHERE inuse=1 ORDER BY name";
-        $result = $conn->query($sql);
+  <table width='100%'>
+    <tr>
+      <td style='white-space:nowrap'>
+        <?php
+          // populate first column with names and current usage
+          $sql = "SELECT channum, name, last * mult AS watts FROM channel WHERE inuse=1 ORDER BY name";
+          $result = $conn->query($sql);
 
-        if ($result->num_rows > 0) {
-          echo "<table>";
-          while($row = $result->fetch_assoc()) {
-            echo "<tr><td align='right'>" . $row["watts"] . "</td><td>" . "<a href='power.php?" .
-              "channel=" . $row["channum"] .
-              "&interval=" . $interval .
-              "&hours=" . $hours .
-              "'>" . htmlspecialchars($row["name"]) . "</a></td></tr>";
+          if ($result->num_rows > 0) {
+            echo "<table>";
+            while($row = $result->fetch_assoc()) {
+              echo "<tr><td align='right'>" . $row["watts"] . "</td><td>" . "<a href='power.php?" .
+                "channel=" . $row["channum"] .
+                "&interval=" . $interval .
+                "&hours=" . $hours .
+                "'>" . htmlspecialchars($row["name"]) . "</a></td></tr>";
+            }
+            echo "</table>";
+          } else {
+            echo "No channels in database";
           }
-          echo "</table>";
-        } else {
-          echo "No channels in database";
-        }
-      ?>
-      <br/>
+        ?>
+      </td>
+      <td style='width:99%; vertical-align:top'>
+        <div id="chart_div" style='height:500px'></div>
+      </td>
+    </tr>
+  </table>
 
-    </div>
-
-    <div id="chart_div" style="height:500px"></div>
-
-  </div>
 </body>
 </html>
 
