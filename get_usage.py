@@ -50,7 +50,7 @@ db = pymysql.connect(host="localhost",
 while True:
   while True:
     # wait for next time increment
-    now = datetime.datetime.now()
+    now = datetime.datetime.utcnow()
     if now.second % inc == 0:
       break
     time.sleep(0.5)
@@ -129,13 +129,11 @@ while True:
   sql = "UPDATE channel SET watts=" + str(watts) + ", stamp='" + now.isoformat() + "' WHERE channum=0"
   cur.execute(sql)
 
-  #sql = "INSERT INTO used VALUES(0, (SELECT SUM(watts) FROM channel WHERE type > 0), '" + now.isoformat() + "')"
-  #cur.execute(sql)
-  cur.execute("COMMIT");
 
-  # done with this pass - close and commit
+  # done with this pass - commit transaction, close cursor, and commit changes to database
+  cur.execute("COMMIT");
   cur.close()
-  db.commit() # TODO: is this necessary?
+  db.commit()  # TODO: is this necessary since we executed COMMIT?
 
   # print update time
   print (now.isoformat()[:19])

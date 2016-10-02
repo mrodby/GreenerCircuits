@@ -34,10 +34,8 @@ if ($conn->connect_error)
   <h2><br/>Active Alerts</h2>
 
   <?php
-    $result = $conn->query("SELECT alert.channum, greater, watts, minutes, message, alerted, name " .
-      "FROM alert ".
-      "INNER JOIN channel " .
-      "ON alert.channum=channel.channum " .
+    $result = $conn->query("SELECT alert.channum, greater, alert.watts, minutes, message, alerted, name " .
+      "FROM alert INNER JOIN channel ON alert.channum=channel.channum " .
       "ORDER BY alerted DESC, name");
 
     echo('<table border=1>');

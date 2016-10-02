@@ -45,10 +45,16 @@ db = pymysql.connect(host="localhost",
 # initialize global so we only send one alert if db updates stop
 updating = True
 
+while True:
+  now = datetime.datetime.now().replace(microsecond=0)
+  utcnow = datetime.datetime.utcnow().replace(microsecond=0)
+  if now.second == utcnow.second:
+    break
+timezone = now-utcnow
+
 # main loop
 while True:
   while True:
-    timezone = datetime.timedelta(hours=-10)   # TODO: get time zone from pytz
     # check alerts once per minute
     now = datetime.datetime.now() + timezone
     if now.second % 60 == 0:
@@ -122,7 +128,7 @@ while True:
         prowl ('POWER ALERT', message)
         cur.execute('UPDATE alert SET alerted=1 WHERE id=' + str(id))
       else:
-        message = 'Circuit "' + name + '" has ' + msgnonzero + ' ' + str(watts) + ' watts' + message
+        message = 'Circuit "' + name + '" has ' + msgnonzero + ' ' + str(watts) + ' watts'
         print ('***** power alert *****', message)
         prowl ('power alert', message)
         cur.execute('UPDATE alert SET alerted=0 WHERE id=' + str(id))
