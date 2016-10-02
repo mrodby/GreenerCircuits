@@ -33,8 +33,12 @@
       from these monitors, store it in a database, and analyze it in ways that
       Power Dynamics does not offer. For example, I wanted it to notify me if
       the ceiling fan in our unused bedroom was left on when nobody was in the
-      room. This project is the result.
-      <br/>
+      room. This project is the result.<br/>
+      The original Powerhouse Dynamics system cost about $2,000 to install,
+      but analysis of electricity usage enabled by that system allowed us to
+      reduce our electricity usage by about $100 per month, and allowed us to
+      reduce the size of the PV system we installed by about $5,000. That's
+      a very nice payback of the investment.<br/> 
     </p>
     <p>
       This project uses PHP, CSS, HTML, MySQL, Python, and third party
@@ -53,7 +57,10 @@
           30 days.</li>
       <li>alerts.py: Once each minute this checks each alert in the alert
           table. If an alert is newly raised, or if a previously raised alert
-          is resolved, a message is sent to my cell phone via prowlapp.com.</li>
+          is resolved, a message is sent to my cell phone via prowlapp.com.
+          It also checks to make sure the database is being updated by
+          verifying that the most recent time stamp in the database is less
+          than 1 minute old.</li>
     </ul>
     <p style="text-align: center">
       <img src="images/PiZero.jpg" alt="Raspberry Pi Zero">
