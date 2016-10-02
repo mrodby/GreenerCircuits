@@ -54,7 +54,7 @@ if ($conn->connect_error)
               die('Invalid ' . $name);
             return $ret;
           }
-          $chan = number_parm("channel", "11");
+          $chan = number_parm("channel", "0");
           $hours = number_parm("hours", "24");
           $interval = number_parm("interval", "60");
 
@@ -81,7 +81,7 @@ if ($conn->connect_error)
             # note: $time is in the format YYYY-MM-DD HH:MM:SS
             # - to work in Safari and IE a T needs to be between date and time,
             #   and for proper time zone adjustment, a 'Z' needs to be appended
-            echo "[new Date('".substr($time,0,10)."T".substr($time,11,5)."Z'),".$power."],";
+            echo "[new Date('".substr($time,0,10)."T".substr($time,0,5)."Z'),".$power."],";
           }
         ?>
       ]);
