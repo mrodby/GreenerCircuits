@@ -40,21 +40,23 @@
   <br/>My projects have included:
   <ul>
     <li>
-      <a href='power.php'>Greener Circuits:</a> Python programs and PHP web
+      <a href='http://66.75.74.92/power.php'>Greener Circuits:</a>
+      Python programs and PHP web
       pages that monitor the power used by each circuit of my house, keep
       track of that usage in a database, graphs usage over time, and notify
       me when something happens that I am interested in. Except for the actual
       monitoring device itself, all of the software (including the database
       and web server) runs in a <a href='https://www.adafruit.com/products/2885'>
       Raspberry Pi Zero</a>, a tiny $5 computer that runs Linux. You can see
-      the results <a href='power.php'>here</a>, and the source code is
-      available on GitHub
+      the results <a href='http://66.75.74.92/power.php'>here</a>, and the
+      source code is available on GitHub
       <a href='https://github.com/mrodby/GreenerCircuits'>here</a>.
       I wrote all of the custom software for this
       project. The web pages are so simple that I didn’t bother with a more
       powerful framework. If this were to turn into something real, I would
       convert it to a real web framework, such as Ruby on Rails.<br/>
-      <img src='images/gcpower.png' alt='Sample Greener Circuits display' width='90%'><br/>
+      <img src='http://66.75.74.92/images/gcpower.png'
+      alt='Sample Greener Circuits display' width='90%'><br/>
       This example shows the electricity used by my refrigerator over a 24 hour
       period. Note that around mealtimes the compressor is on for longer than it
       is at night, since that is when we open its door and put warmer things in

@@ -45,39 +45,29 @@ if ($conn->connect_error)
       var data = google.visualization.arrayToDataTable([
         ['Time', 'Watts'],
         <?php
-          if (isset($_GET["channel"])) {
-            $chan = $_GET["channel"];
-            if (!ctype_digit($chan))
-              die("Invalid channel number: " . $chan);
+          function number_parm($name, $default) {
+            if (isset($_GET[$name]))
+              $ret = $_GET[$name];
+            else
+              $ret = $default;
+            if (!ctype_digit($ret))
+              die('Invalid ' . $name);
+            return $ret;
           }
-          else
-            $chan = "11";
-          if (isset($_GET["hours"])) {
-            $hours = $_GET["hours"];
-            if (!ctype_digit($hours))
-              die("Invalid hours: " . $hours);
-          }
-          else
-            $hours = "24";
-          if (isset($_GET["interval"])) {
-            $interval = $_GET["interval"];
-            if (!ctype_digit($interval))
-              die("Invalid interval: " . $interval);
-          }
-          else
-            $interval = "60";
+          $chan = number_parm("channel", "11");
+          $hours = number_parm("hours", "24");
+          $interval = number_parm("interval", "60");
 
-          // get channel name and multiplier
+          // get channel name and type
           $sql = "SELECT * FROM channel WHERE channum = " . $chan;
           $result = $conn->query($sql);
           if ($result->num_rows <= 0)
             die("Invalid channel: " . $chan);
           $row = $result->fetch_assoc();
           $name = $row["name"];
-          $mult = $row["mult"];
 
           $sql = "SELECT FROM_UNIXTIME(UNIX_TIMESTAMP(stamp) DIV " . $interval . " * " . $interval . ") AS Time, " .
-                     "ROUND(AVG(watts)) * " . $mult . " AS Power " .
+                     "ROUND(AVG(watts)) AS Power " .
                  "FROM used " .
                  "WHERE channum = " . $chan . " AND stamp > DATE_ADD(CURRENT_TIMESTAMP, INTERVAL -" . $hours . " HOUR) " .
                  "GROUP BY UNIX_TIMESTAMP(stamp) DIV " . $interval;
@@ -98,7 +88,7 @@ if ($conn->connect_error)
 
       var options = {
         title: "<?php echo $name /* note: do not call htmlspecialchars here */ ?>",
-        chartArea:{left:50,top:30,right:10,bottom:10,width:"100%",height:"100%"},
+        chartArea:{left:50,top:30,right:10,bottom:40,width:"100%",height:"100%"},
         legend: { position: "none" }
       };
       var chart = new google.visualization.ColumnChart(document.getElementById("chart_div"));
@@ -119,7 +109,7 @@ if ($conn->connect_error)
       <td style='white-space:nowrap'>
         <?php
           // populate first column with names and current usage
-          $sql = "SELECT channum, name, last * mult AS watts FROM channel WHERE inuse=1 ORDER BY name";
+          $sql = "SELECT channum, name, watts FROM channel WHERE type<>0 ORDER BY name";
           $result = $conn->query($sql);
 
           if ($result->num_rows > 0) {

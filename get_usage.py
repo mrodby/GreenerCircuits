@@ -55,9 +55,13 @@ while True:
       break
     time.sleep(0.5)
 
-# get database cursor and start a transaction
+# get database cursor, start a transaction, and get the current list of channels
   cur = db.cursor()
   cur.execute("START TRANSACTION")
+  cur.execute("SELECT channum, type FROM channel")
+  chantypes = {}
+  for row in cur.fetchall():
+    chantypes[row[0]] = int(row[1])
 
 # get web page(s) from eMonitor(s) - log and notify via Prowl when failures occur
   for idx, ip in enumerate(ips):
@@ -89,16 +93,30 @@ while True:
 
     # pass page through Beautiful Soup HTML parser, insert each row into database
     # - for channel number, use 100 + index for second eMonitor unit
+    # - massage values depending on channel type
     soup = BeautifulSoup(response.content, "html5lib")
     table = soup.find("table", { "class" : "channel-data" })
+    prev_watts = 0
     for row in table.findAll("tr"):
       cells = row.findAll("td")
       if len(cells) == 3:
-        num = str(int(cells[0].find(text=True)) + 100 * idx)
-        watts = cells[2].find(text=True)
-        sql = "INSERT INTO used VALUES (" + num + ", " + watts + ", '" + now.isoformat() + "')"
+        channum = (int(cells[0].find(text=True)) + 100 * idx)
+        watts = int(cells[2].find(text=True))
+        # assumes channel exists in table - TODO: handle case where it is not
+        chantype = chantypes[channum]
+        # handle special types
+        if chantype == -1:
+          watts = -watts
+        elif chantype == 2:
+          watts *= 2
+        elif chantype == 3:
+          watts += prev_watts
+        prev_watts = watts
+        if chantype == 0:
+          continue
+        sql = "INSERT INTO used VALUES (" + str(channum) + ", " + str(watts) + ", '" + now.isoformat() + "')"
         cur.execute(sql)
-        sql = "UPDATE channel SET last=" + watts + ", stamp='" + now.isoformat() + "' WHERE channum=" + num
+        sql = "UPDATE channel SET watts=" + str(watts) + ", stamp='" + now.isoformat() + "' WHERE channum=" + str(channum)
         cur.execute(sql)
   cur.execute("COMMIT");
 
