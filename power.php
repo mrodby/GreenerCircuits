@@ -75,6 +75,7 @@ if ($conn->connect_error)
           if ($result->num_rows <= 0)
             die("No results for channel " . $chan . ", interval " . $interval);
 
+          $total = 0;
           while($row = mysqli_fetch_array($result)){
             $time = $row['Time'];
             $power = $row['Power'];
@@ -82,12 +83,13 @@ if ($conn->connect_error)
             # - to work in Safari and IE a T needs to be between date and time,
             #   and for proper time zone adjustment, a 'Z' needs to be appended
             echo "[new Date('".substr($time,0,10)."T".substr($time,11,5)."Z'),".$power."],";
+            $total += $power;
           }
         ?>
       ]);
 
       var options = {
-        title: "<?php echo $name /* note: do not call htmlspecialchars here */ ?>",
+        title: "<?php echo $name; $kWh = round($total/(3600/$interval)/1000,3); echo " (Total kWh: " . $kWh . ")"; /* note: do not call htmlspecialchars here */ ?>",
         chartArea:{left:50,top:30,right:10,bottom:40,width:"100%",height:"100%"},
         legend: { position: "none" }
       };
