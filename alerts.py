@@ -42,6 +42,9 @@ db = pymysql.connect(host="localhost",
                      db="eMonitor",
                      read_default_file="/home/mrodby/.my.cnf")
 
+# initialize global so we only send one alert if db updates stop
+updating = True
+
 # main loop
 while True:
   while True:
@@ -54,6 +57,22 @@ while True:
 
   # get database cursor
   cur = db.cursor()
+
+  # check most recent database update time stamp
+  cur.execute("SELECT MAX(stamp) FROM used")
+  row = cur.fetchone()
+  stamp = row[0] + timezone
+  if (now - stamp).total_seconds() > 60:
+    if updating:
+      print('***** UPDATES STOPPED *****', 'Last database update more than 1 minute ago')
+      prowl('UPDATES STOPPED', 'Last database update more than 1 minute ago')
+      updating = False
+    continue  # don't print any other alerts since database is not updating
+  else:
+    if not updating:
+      print('***** updates resumed *****', 'Database updates have resumed')
+      prowl('updates resumed', 'Database updates have resumed')
+      updating = True
 
   # test each alert
   cur.execute("SELECT id, channum, greater, watts, minutes, start, end, message, alerted from alert")
