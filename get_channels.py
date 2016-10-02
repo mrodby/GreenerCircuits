@@ -22,6 +22,8 @@ db = pymysql.connect(host="localhost",
                      read_default_file="~/.my.cnf")
 cur = db.cursor()
 
+cur.execute("INSERT INTO channel (channum, name) VALUES (0, '-Whole House-')")
+
 # get web page(s) from eMonitor(s)
 nonBreakSpace = u'\xa0'
 for idx, ip in enumerate(ips):

@@ -118,6 +118,19 @@ while True:
         cur.execute(sql)
         sql = "UPDATE channel SET watts=" + str(watts) + ", stamp='" + now.isoformat() + "' WHERE channum=" + str(channum)
         cur.execute(sql)
+
+  # put sum of current values into channel 0, both in used table and channel table
+  sql = "SELECT SUM(watts) FROM channel WHERE type > 0";
+  cur.execute(sql)
+  row = cur.fetchone()
+  watts = row[0]
+  sql = "INSERT INTO used VALUES(0, " + str(watts) + ", '" + now.isoformat() + "')"
+  cur.execute(sql)
+  sql = "UPDATE channel SET watts=" + str(watts) + ", stamp='" + now.isoformat() + "' WHERE channum=0"
+  cur.execute(sql)
+
+  #sql = "INSERT INTO used VALUES(0, (SELECT SUM(watts) FROM channel WHERE type > 0), '" + now.isoformat() + "')"
+  #cur.execute(sql)
   cur.execute("COMMIT");
 
   # done with this pass - close and commit
