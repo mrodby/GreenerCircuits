@@ -15,13 +15,14 @@ import urllib.parse
 
 # function to send a notification via prowlapp.com
 # - call with event = title, desc = what happened
-def prowl(event, desc):
+def prowl(event, desc, channum):
   app = urllib.parse.quote('Greener Circuits')
   url = 'http://api.prowlapp.com/publicapi/add?' + \
     'apikey=' + prowl_key + \
-    '&application=' + urllib.parse.quote("Greener Circuits") + \
+    '&application=' + urllib.parse.quote('Greener Circuits') + \
     '&event=' + urllib.parse.quote(event) + \
-    '&description=' + urllib.parse.quote(desc)
+    '&description=' + urllib.parse.quote(desc) + \
+    '&url=' + urllib.parse.quote('http://66.75.74.92/power.php?channel=' + str(channum))
   requests.get(url)
 
 # if prowl_key is set, copy to global; if not, complain and exit
@@ -71,12 +72,12 @@ while True:
   if (now - stamp).total_seconds() > 60:
     if updating:
       print('***** UPDATES STOPPED *****', 'Last database update more than 1 minute ago')
-      prowl('UPDATES STOPPED', 'Last database update more than 1 minute ago')
+      prowl('UPDATES STOPPED', 'Last database update more than 1 minute ago', 0)
       updating = False
     continue  # don't print any other alerts since database is not updating
   else:
     if not updating:
-      print('***** updates resumed *****', 'Database updates have resumed')
+      print('***** updates resumed *****', 'Database updates have resumed', 0)
       prowl('updates resumed', 'Database updates have resumed')
       updating = True
 
@@ -125,12 +126,12 @@ while True:
       if not alerted:
         message = 'Circuit "' + name + '" has been ' + msgzero + ' ' + str(watts) + ' watts for more than ' + str(minutes) + ' minutes' + message
         print ('***** POWER ALERT ******', message)
-        prowl ('POWER ALERT', message)
+        prowl ('POWER ALERT', message, channum)
         cur.execute('UPDATE alert SET alerted=1 WHERE id=' + str(id))
       else:
         message = 'Circuit "' + name + '" has ' + msgnonzero + ' ' + str(watts) + ' watts'
         print ('***** power alert *****', message)
-        prowl ('power alert', message)
+        prowl ('power alert', message, channum)
         cur.execute('UPDATE alert SET alerted=0 WHERE id=' + str(id))
 
   # done with this pass - close cursor
