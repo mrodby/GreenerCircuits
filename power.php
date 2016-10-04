@@ -63,6 +63,12 @@ if ($conn->connect_error)
           $chan = number_parm("channel", "0");
           $hours = number_parm("hours", "24");
           $interval = number_parm("interval", "60");
+          if (isset($_GET["end"]))
+            $end = $_GET["end"];
+          else {
+            $time = time() - date('Z');
+            $end = date('Y-m-d', $time) . 'T' . date('H:i:s', $time) . 'Z';
+          }
 
           // get channel name and type
           $sql = "SELECT * FROM channel WHERE channum = " . $chan;
@@ -75,7 +81,8 @@ if ($conn->connect_error)
           $sql = "SELECT FROM_UNIXTIME(UNIX_TIMESTAMP(stamp) DIV " . $interval . " * " . $interval . ") AS Time, " .
                      "ROUND(AVG(watts)) AS Power " .
                  "FROM used " .
-                 "WHERE channum = " . $chan . " AND stamp > DATE_ADD(CURRENT_TIMESTAMP, INTERVAL -" . $hours . " HOUR) " .
+                 "WHERE channum = " . $chan .
+                      " AND stamp BETWEEN DATE_ADD('" . $end . "', INTERVAL -" . $hours . " HOUR) AND '" . $end . "' " .
                  "GROUP BY UNIX_TIMESTAMP(stamp) DIV " . $interval;
           $result = $conn->query($sql);
           if ($result->num_rows <= 0)
@@ -95,7 +102,7 @@ if ($conn->connect_error)
       ]);
 
       var options = {
-        title: "<?php echo $name; $kWh = round($total/(3600/$interval)/1000,3); echo " (Total kWh: " . $kWh . ")"; /* note: do not call htmlspecialchars here */ ?>",
+        title: "<?php echo $name; $kWh = round($total/(3600/$interval)/1000,3); echo " (Total: " . $kWh . " kWh)"; /* note: do not call htmlspecialchars here */ ?>",
         chartArea:{left:50,top:30,right:10,bottom:40,width:"100%",height:"100%"},
         legend: { position: "none" }
       };
