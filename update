@@ -1,2 +1,2 @@
 sudo cp *.php main.css /var/www/html/
-sudo cp *.jpg *.png /var/www/html/images/
+sudo cp *.jpg *.png *.ico /var/www/html/images/

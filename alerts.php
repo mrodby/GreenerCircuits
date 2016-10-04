@@ -22,6 +22,8 @@ if ($conn->connect_error)
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <title>Greener Circuits Alerts</title>
   <link rel="stylesheet" type="text/css" href="main.css">
+  <link rel="icon" href="/images/GreenerCircuits.png" type="image/png" />
+  <link rel="shortcut icon" href="/images/GreenerCircuits.ico" />
 </head>
 <body>
 
