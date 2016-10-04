@@ -1,4 +1,9 @@
 #!/usr/bin/python
+
+# Component of Greener Circuits:
+# Once an hour consolidate rows in the database into 1-minute averages
+# and delete rows older than 30 days old
+
 import MySQLdb
 import datetime
 import time

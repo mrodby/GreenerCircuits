@@ -1,4 +1,11 @@
 #!/usr/bin/python3
+
+# Component of Greener Circuits:
+# Once every 10 seconds retrieve web page(s) from each eMonitor, scrape
+# current usage numbers from the page(s), and store them in the database.
+# If too many read errors occur when retrieving data from an eMonitor,
+# send an alert via prowlapp.com
+
 import pymysql
 import requests
 from bs4 import BeautifulSoup
