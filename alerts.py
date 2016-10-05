@@ -30,8 +30,6 @@ if not 'prowl_key' in os.environ:
   print ('prowl_key not set in environment')
   quit()
 prowl_key = os.environ['prowl_key']
-if prowl_key[-1] == ':':      # TODO: when started from /etc/init.d a colon is appended - find out why
-  prowl_key = prowl_key[:-1]
 
 print ('***** Starting Greener Circuits Alerts *****')
 sys.stdout.flush()
