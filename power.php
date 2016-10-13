@@ -63,12 +63,10 @@ if ($conn->connect_error)
           $chan = number_parm("channel", "0");
           $hours = number_parm("hours", "24");
           $interval = number_parm("interval", "60");
-          if (isset($_GET["end"]))
-            $end = $_GET["end"];
-          else {
-            $time = time() - date('Z');
-            $end = date('Y-m-d', $time) . 'T' . date('H:i:s', $time) . 'Z';
-          }
+          $page = number_parm("page", "0");
+          $time = time() - date('Z');
+          $end = $time - $page * $hours * 3600;
+          $end = date('Y-m-d', $end) . 'T' . date('H:i:s', $end) . 'Z';
 
           // get channel name and type
           $sql = "SELECT * FROM channel WHERE channum = " . $chan;
@@ -140,11 +138,30 @@ if ($conn->connect_error)
           } else {
             echo "No channels in database";
           }
+          echo "</td>";
         ?>
-      </td>
+        <?php
+          echo "<td><a href='power.php?" .
+              "channel=" . $chan .
+              "&interval=" . $interval .
+              "&hours=" . $hours .
+              "&page=" . ($page + 1) .
+              "'>&lt;&lt;</a></td>";
+        ?>
       <td style='width:99%; vertical-align:top'>
         <div id="chart_div" style='height:500px'></div>
       </td>
+        <?php
+          if ($page > 0)
+            echo "<td><a href='power.php?" .
+              "channel=" . $chan .
+              "&interval=" . $interval .
+              "&hours=" . $hours .
+              "&page=" . ($page - 1) .
+              "'>&gt;&gt;</a></td>";
+          else
+            echo "<td>&gt;&gt;</td>";
+        ?>
     </tr>
   </table>
 
