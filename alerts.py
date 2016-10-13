@@ -57,7 +57,7 @@ timezone = localnow - utcnow
 while True:
     while True:
         # Check alerts once per minute.
-        utcnow = datetime.datetime.utcnow()
+        utcnow = datetime.datetime.utcnow().replace(microsecond=0)
         if utcnow.second % 60 == 0:
             break
         time.sleep(0.5)
@@ -129,7 +129,7 @@ while True:
                 cur.execute('UPDATE alert SET alerted=0 WHERE id=' + str(id))
             continue
         sql = ('SELECT COUNT(*) FROM used WHERE channum=' + str(channum) +\
-               ' AND stamp >= DATE_ADD(CURRENT_TIMESTAMP, INTERVAL -'
+               ' AND stamp >= DATE_ADD("' + utcnow.isoformat() + '", INTERVAL -'
                    + str(minutes) + ' MINUTE)' +\
                ' AND watts ' + compare + str(watts))
         cur.execute(sql)
