@@ -15,58 +15,37 @@ import urllib.parse
 
 import pymysql
 
-# Send a notification via prowlapp.com:
-# - Call with event = title, desc = what happened.
-def prowl(event, desc, channum):
-    app = urllib.parse.quote('Greener Circuits')
-    url = ('http://api.prowlapp.com/publicapi/add?'
-        + 'apikey=' + prowl_key
-        + '&application=' + urllib.parse.quote('Greener Circuits')
-        + '&event=' + urllib.parse.quote(event)
-        + '&description=' + urllib.parse.quote(desc)
-        + '&url=' + urllib.parse.quote(
-            'http://66.75.74.92/power.php?channel=' + str(channum)))
-    requests.get(url)
+import gclib
+import prowl
 
-# If prowl_key is set, copy to global; if not, complain and exit.
-if 'prowl_key' not in os.environ:
-    print ('prowl_key not set in environment')
-    quit()
-prowl_key = os.environ['prowl_key']
+def ChannelURL(channum):
+    return 'http://' + gclib.GcIP() + '/power.php?channel=' + str(channum)
 
 print ('***** Starting Greener Circuits Alerts *****')
 sys.stdout.flush()
 
 # Connect to database.
-db = pymysql.connect(host='localhost',
-                     user='eMonitor',
-#                     passwd='xxxxxxxx', - will be filled in from .my.cnf
-                     db='eMonitor',
-                     read_default_file='/home/mrodby/.my.cnf')
+db = gclib.ConnectDB()
+
+# Instantiate prowlapp.com interface object.
+prowl = prowl.Prowl()
 
 # Initialize global so we only send one alert if db updates stop.
 updating = True
 
-while True:
-    localnow = datetime.datetime.now().replace(microsecond=0)
-    utcnow = datetime.datetime.utcnow().replace(microsecond=0)
-    if localnow.second == utcnow.second:
-        break
-timezone = localnow - utcnow
+# Get time zone.
+timezone = gclib.GetTimeZone()
 
+# main loop
 while True:
-    while True:
-        # Check alerts once per minute.
-        utcnow = datetime.datetime.utcnow().replace(microsecond=0)
-        if utcnow.second % 60 == 0:
-            break
-        time.sleep(0.5)
+    # Check alerts once per minute.
+    utcnow = gclib.SyncSecs(60)
     localnow = utcnow + timezone
 
     # Get database cursor.
     cur = db.cursor()
 
-    # Check most recent database update time stamp.
+    # If database has not been updated in the last 60 seconds, send alert.
     cur.execute('SELECT MAX(stamp) FROM used')
     row = cur.fetchone()
     stamp = row[0]
@@ -74,15 +53,16 @@ while True:
         if updating:
             print('***** UPDATES STOPPED *****',
                   'Last database update more than 1 minute ago')
-            prowl('UPDATES STOPPED',
-                  'Last database update more than 1 minute ago', 0)
+            prowl.notify('UPDATES STOPPED',
+                         'Last database update more than 1 minute ago')
             updating = False
             continue  # Don't print any alerts since database is not updating.
     else:
         if not updating:
             print('***** updates resumed *****',
                   'Database updates have resumed', 0)
-            prowl('updates resumed', 'Database updates have resumed')
+            prowl.notify('updates resumed',
+                         'Database updates have resumed')
             updating = True
 
     # Test each alert.
@@ -125,7 +105,7 @@ while True:
                            + str(watts) + ' watts and it is now outside the '
                            'monitoring time - clearing alert')
                 print ('***** power alert *****', message)
-                prowl ('power alert', message, channum)
+                prowl.notify ('power alert', message, ChannelURL(channum))
                 cur.execute('UPDATE alert SET alerted=0 WHERE id=' + str(id))
             continue
         sql = ('SELECT COUNT(*) FROM used WHERE channum=' + str(channum) +\
@@ -147,13 +127,13 @@ while True:
                            + str(watts) + ' watts for more than '
                            + str(minutes) + ' minutes' + message)
                 print ('***** POWER ALERT ******', message)
-                prowl ('POWER ALERT', message, channum)
+                prowl.notify ('POWER ALERT', message, ChannelURL(channum))
                 cur.execute('UPDATE alert SET alerted=1 WHERE id=' + str(id))
             else:
                 message = ('Circuit "' + name + '" has ' + msgnonzero + ' '
                            + str(watts) + ' watts')
                 print ('***** power alert *****', message)
-                prowl ('power alert', message, channum)
+                prowl.notify ('power alert', message, ChannelURL(channum))
                 cur.execute('UPDATE alert SET alerted=0 WHERE id=' + str(id))
 
     # Done with this pass - close cursor.
