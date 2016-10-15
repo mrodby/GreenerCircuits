@@ -21,7 +21,7 @@ import prowl
 def ChannelURL(channum):
     return 'http://' + gclib.GcIP() + '/power.php?channel=' + str(channum)
 
-print ('***** Starting Greener Circuits Alerts *****')
+print('***** Starting Greener Circuits Alerts *****')
 sys.stdout.flush()
 
 # Connect to database.
@@ -104,8 +104,8 @@ while True:
                 message = ('Circuit "' + name + '" is still ' + msgzero + ' '
                            + str(watts) + ' watts and it is now outside the '
                            'monitoring time - clearing alert')
-                print ('***** power alert *****', message)
-                prowl.notify ('power alert', message, ChannelURL(channum))
+                print('***** power alert *****', message)
+                prowl.notify('power alert', message, ChannelURL(channum))
                 cur.execute('UPDATE alert SET alerted=0 WHERE id=' + str(id))
             continue
         sql = ('SELECT COUNT(*) FROM used WHERE channum=' + str(channum) +\
@@ -126,14 +126,14 @@ while True:
                 message = ('Circuit "' + name + '" has been ' + msgzero + ' '
                            + str(watts) + ' watts for more than '
                            + str(minutes) + ' minutes' + message)
-                print ('***** POWER ALERT ******', message)
-                prowl.notify ('POWER ALERT', message, ChannelURL(channum))
+                print('***** POWER ALERT ******', message)
+                prowl.notify('POWER ALERT', message, ChannelURL(channum))
                 cur.execute('UPDATE alert SET alerted=1 WHERE id=' + str(id))
             else:
                 message = ('Circuit "' + name + '" has ' + msgnonzero + ' '
                            + str(watts) + ' watts')
-                print ('***** power alert *****', message)
-                prowl.notify ('power alert', message, ChannelURL(channum))
+                print('***** power alert *****', message)
+                prowl.notify('power alert', message, ChannelURL(channum))
                 cur.execute('UPDATE alert SET alerted=0 WHERE id=' + str(id))
 
     # Done with this pass - close cursor.
@@ -142,7 +142,7 @@ while True:
                 # even for SELECT statements.
 
     # Print update time.
-    print (localnow.isoformat()[:19])
+    print(localnow.isoformat()[:19])
     sys.stdout.flush()
 
     # Ensure this loop is not done more often than once per second.

@@ -10,7 +10,7 @@ import sys
 
 import pymysql
 
-print ('***** Starting Greener Circuits Database Daemon *****')
+print('***** Starting Greener Circuits Database Daemon *****')
 sys.stdout.flush()
 
 # Connect to database.
@@ -58,9 +58,9 @@ while True:
     if end_stamp >= now - datetime.timedelta(minutes=1):
       continue
 
-    print ('Consolidating from '
-           + start_stamp.isoformat()[:19] + ' to '
-           + end_stamp.isoformat()[:19])
+    print('Consolidating from '
+          + start_stamp.isoformat()[:19] + ' to '
+          + end_stamp.isoformat()[:19])
     sys.stdout.flush()
 
     # Start a transaction to ensure nobody else sees inconsistent data.
@@ -95,7 +95,7 @@ while True:
     # All done - commit transaction.
     cur.execute('COMMIT');
 
-    print ('Done:', now.isoformat()[:19])
+    print('Done:', now.isoformat()[:19])
 
     # Once an hour delete rows older than number of days specified in settings.
     cur.execute('SELECT history_days FROM settings');

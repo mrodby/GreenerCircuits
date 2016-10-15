@@ -10,7 +10,7 @@ class Prowl(object):
         # If prowl_key not set, complain and exit.
         elif 'prowl_key' not in os.environ:
             # TODO: throw exception instead of printing message and quitting
-            print ('prowl_key not set in environment')
+            print('prowl_key not set in environment')
             quit()
         self.key = os.environ['prowl_key']
 

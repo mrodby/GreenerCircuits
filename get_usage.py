@@ -8,59 +8,38 @@
 
 import requests
 import datetime
-import time
 import sys
-import os
-import urllib.parse
 
-import pymysql
 from bs4 import BeautifulSoup
 
+import gclib
+import prowl
+
 # globals
-fails = [0, 0]
+fails = []
 max_fails = 90
 inc = 10  # Read web page from each eMonitor IP every inc seconds (max 60).
 
-# Send a notification via prowlapp.com:
-# - call with event = IP address, desc = what happened.
-def prowl(event, desc):
-    app = urllib.parse.quote('Greener Circuits')
-    url = 'http://api.prowlapp.com/publicapi/add?' + \
-        'apikey=' + prowl_key + \
-        '&application=' + urllib.parse.quote('Greener Circuits') + \
-        '&event=' + urllib.parse.quote(event) + \
-        '&description=' + urllib.parse.quote(desc)
-    requests.get(url)
-
-# If prowl_key is set, copy to global; if not, complain and exit.
-if 'prowl_key' not in os.environ:
-    print ('prowl_key not set in environment')
-    quit()
-prowl_key = os.environ['prowl_key']
-
-print ('***** Starting Greener Circuits *****')
+print('***** Starting Greener Circuits *****')
 sys.stdout.flush()
+
+# Connect to database.
+db = gclib.ConnectDB()
+
+# Instantiate prowlapp.com interface object.
+prowl = prowl.Prowl()
 
 # Get IP addresses or hostnames from eMonitors file.
 with open('eMonitors') as f:
     ips = f.read().splitlines()
-
-# Connect to database.
-db = pymysql.connect(host='localhost',
-                     user='eMonitor',
-#                     passwd='xxxxxxxx', - will be filled in from .my.cnf
-                     db='eMonitor',
-                     read_default_file='/home/mrodby/.my.cnf')
+for idx, ip in enumerate(ips):
+    fails.append(0)
 
 while True:
-    while True:
-        # Wait for next time increment.
-        now = datetime.datetime.utcnow()
-        if now.second % inc == 0:
-            break
-        time.sleep(0.5)
+    # Update database every 10 seconds.
+    utcnow = gclib.SyncSecs(10)
 
-# Get database cursor, start a transaction, and get the current channel list.
+    # Get database cursor, start a transaction, and get current channel list.
     cur = db.cursor()
     cur.execute('START TRANSACTION')
     cur.execute('SELECT channum, type FROM channel')
@@ -68,27 +47,28 @@ while True:
     for row in cur.fetchall():
         chantypes[row[0]] = int(row[1])
 
-# Get web page(s) from eMonitor(s) - log and notify via Prowl when failures
-# occur.
+    # Get web page(s) from eMonitor(s) - log and notify via Prowl when
+    # failures occur.
+    updated = False
     for idx, ip in enumerate(ips):
         try:
             response = requests.get('http://' + ip, timeout=5)
             if response.status_code != 200:
-                print ('Invalid HTTP response from', ip + ':',
+                print('Invalid HTTP response from', ip + ':',
                        response.status_code)
                 continue
-        except (requests.exceptions.ConnectTimeout,
-                requests.exceptions.ReadTimeout,
-                requests.exceptions.ConnectionError):
-            print ('Error reading page from', ip)
+        except(requests.exceptions.ConnectTimeout,
+               requests.exceptions.ReadTimeout,
+               requests.exceptions.ConnectionError):
+            print('Error reading page from', ip)
             fails[idx] += 1
             if fails[idx] == max_fails:
                 msg = 'eMonitor DOWN: ' + str(max_fails) + ' read failures'
-                prowl (ip, msg)
+                prowl.notify(ip, msg)
             continue
         if fails[idx] >= max_fails:
             msg = 'eMonitor UP after ' + str(fails[idx]) + ' read failures'
-            prowl (ip, msg)
+            prowl.notify(ip, msg)
         if fails[idx] > 0:
             msg = ip + ': success after ' + str(fails[idx])
             if fails[idx] > 1:
@@ -96,9 +76,11 @@ while True:
             msg += ' failure'
             if fails[idx] > 1:
                 msg += 's'
-            print (now.isoformat()[:19], msg)
+            print(utcnow.isoformat()[:19], msg)
             sys.stdout.flush()
             fails[idx] = 0
+
+        updated = True
 
         # Pass page through Beautiful Soup HTML parser,
         # insert each row into database:
@@ -125,25 +107,25 @@ while True:
                 if chantype == 0:
                     continue
                 sql = ('INSERT INTO used VALUES (' + str(channum) + ', '
-                       + str(watts) + ', "' + now.isoformat() + '")')
+                       + str(watts) + ', "' + utcnow.isoformat() + '")')
                 cur.execute(sql)
                 sql = ('UPDATE channel SET watts=' + str(watts)
-                       + ', stamp="' + now.isoformat()
+                       + ', stamp="' + utcnow.isoformat()
                        + '" WHERE channum=' + str(channum))
                 cur.execute(sql)
 
-    # Put sum of current values into channel 0, in used and channel tables.
-    sql = 'SELECT SUM(watts) FROM channel WHERE type > 0';
-    cur.execute(sql)
-    row = cur.fetchone()
-    watts = row[0]
-    sql = ('INSERT INTO used VALUES(0, ' + str(watts)
-           + ', "' + now.isoformat() + '")')
-    cur.execute(sql)
-    sql = ('UPDATE channel SET watts=' + str(watts)
-           + ', stamp="' + now.isoformat() + '" WHERE channum=0')
-    cur.execute(sql)
-
+    if updated:
+        # Put sum of current values into channel 0, in used and channel tables.
+        sql = 'SELECT SUM(watts) FROM channel WHERE type > 0';
+        cur.execute(sql)
+        row = cur.fetchone()
+        watts = row[0]
+        sql = ('INSERT INTO used VALUES(0, ' + str(watts)
+               + ', "' + utcnow.isoformat() + '")')
+        cur.execute(sql)
+        sql = ('UPDATE channel SET watts=' + str(watts)
+               + ', stamp="' + utcnow.isoformat() + '" WHERE channum=0')
+        cur.execute(sql)
 
     # Done with this pass - commit transaction, close cursor,
     # and commit changes to database.
@@ -152,6 +134,6 @@ while True:
     db.commit()  # TODO: is this necessary since we executed COMMIT?
 
     # Print update time.
-    print (now.isoformat()[:19])
+    print(utcnow.isoformat()[:19])
     sys.stdout.flush()
 

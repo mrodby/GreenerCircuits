@@ -30,7 +30,7 @@ nonBreakSpace = u'\xa0'
 for idx, ip in enumerate(ips):
     response = requests.get('http://' + ip)
     if response.status_code != 200:
-        print ('Invalid HTTP response from', ip + ':', response.status_code)
+        print('Invalid HTTP response from', ip + ':', response.status_code)
         continue
 
     # Pass page through Beautiful Soup HTML parser, insert each row into
@@ -51,7 +51,7 @@ for idx, ip in enumerate(ips):
 # Print new channel contents.
 cur.execute('SELECT * FROM channel ORDER BY channum')
 for row in cur.fetchall():
-    print (row[0], '-->', row[1])
+    print(row[0], '-->', row[1])
 
 # All done - close and commit.
 cur.close()
