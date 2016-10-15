@@ -6,20 +6,19 @@
 # condition had previously been met but is now resolved), send an alert
 # via prowlapp.com.
 
-import requests
 import datetime
 import time
 import sys
-import os
-import urllib.parse
-
-import pymysql
 
 import gclib
 import prowl
 
 def ChannelURL(channum):
     return 'http://' + gclib.GcIP() + '/power.php?channel=' + str(channum)
+
+def Alert(event, desc, info_url=None):
+    print(event, desc)
+    prowl.notify(event, desc, info_url)
 
 print('***** Starting Greener Circuits Alerts *****')
 sys.stdout.flush()
@@ -36,9 +35,9 @@ updating = True
 # Get time zone.
 timezone = gclib.GetTimeZone()
 
-# main loop
+# Start main loop.
 while True:
-    # Check alerts once per minute.
+    # Wait until the start of a minute to only check alerts once per minute.
     utcnow = gclib.SyncSecs(60)
     localnow = utcnow + timezone
 
@@ -51,18 +50,14 @@ while True:
     stamp = row[0]
     if (utcnow - stamp).total_seconds() > 60:
         if updating:
-            print('***** UPDATES STOPPED *****',
+            Alert('***** UPDATES STOPPED *****',
                   'Last database update more than 1 minute ago')
-            prowl.notify('UPDATES STOPPED',
-                         'Last database update more than 1 minute ago')
             updating = False
             continue  # Don't print any alerts since database is not updating.
     else:
         if not updating:
-            print('***** updates resumed *****',
-                  'Database updates have resumed', 0)
-            prowl.notify('updates resumed',
-                         'Database updates have resumed')
+            Alert('***** updates resumed *****',
+                  'Database updates have resumed')
             updating = True
 
     # Test each alert.
@@ -104,8 +99,7 @@ while True:
                 message = ('Circuit "' + name + '" is still ' + msgzero + ' '
                            + str(watts) + ' watts and it is now outside the '
                            'monitoring time - clearing alert')
-                print('***** power alert *****', message)
-                prowl.notify('power alert', message, ChannelURL(channum))
+                Alert('power alert', message, ChannelURL(channum))
                 cur.execute('UPDATE alert SET alerted=0 WHERE id=' + str(id))
             continue
         sql = ('SELECT COUNT(*) FROM used WHERE channum=' + str(channum) +\
@@ -114,7 +108,7 @@ while True:
                ' AND watts ' + compare + str(watts))
         cur.execute(sql)
         countrow = cur.fetchone()
-        # If all used rows meet the criteria (i.e. no rows meet the
+        # If all rows meet the criteria (i.e. no rows meet the
         # reverse of the criteria), the alert is active - check to see
         # if that condition has changed.
         if (countrow[0] == 0) != alerted:
@@ -126,14 +120,12 @@ while True:
                 message = ('Circuit "' + name + '" has been ' + msgzero + ' '
                            + str(watts) + ' watts for more than '
                            + str(minutes) + ' minutes' + message)
-                print('***** POWER ALERT ******', message)
-                prowl.notify('POWER ALERT', message, ChannelURL(channum))
+                Alert('POWER ALERT', message, ChannelURL(channum))
                 cur.execute('UPDATE alert SET alerted=1 WHERE id=' + str(id))
             else:
                 message = ('Circuit "' + name + '" has ' + msgnonzero + ' '
                            + str(watts) + ' watts')
-                print('***** power alert *****', message)
-                prowl.notify('power alert', message, ChannelURL(channum))
+                Alert('power alert', message, ChannelURL(channum))
                 cur.execute('UPDATE alert SET alerted=0 WHERE id=' + str(id))
 
     # Done with this pass - close cursor.
