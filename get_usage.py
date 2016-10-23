@@ -9,19 +9,27 @@
 import requests
 import datetime
 import sys
+import signal
 
 from bs4 import BeautifulSoup
 
 import gclib
 import prowl
 
+def Terminate(signum, frame):
+    gclib.Log('***** Stopping Greener Circuits Database Update *****')
+    sys.exit()
+
 # globals
 fails = []
 max_fails = 90
 inc = 10  # Read web page from each eMonitor IP every inc seconds (max 60).
 
-print('***** Starting Greener Circuits *****')
-sys.stdout.flush()
+gclib.Log('***** Starting Greener Circuits Database Update *****')
+
+# Set terminate handler
+signal.signal(signal.SIGTERM, Terminate)
+signal.signal(signal.SIGINT, Terminate)
 
 # Connect to database.
 db = gclib.ConnectDB()
@@ -76,8 +84,7 @@ while True:
             msg += ' failure'
             if fails[idx] > 1:
                 msg += 's'
-            print(utcnow.isoformat()[:19], msg)
-            sys.stdout.flush()
+            gclib.Log(msg)
             fails[idx] = 0
 
         updated = True
@@ -134,6 +141,5 @@ while True:
     db.commit()  # TODO: is this necessary since we executed COMMIT?
 
     # Print update time.
-    print(utcnow.isoformat()[:19])
-    sys.stdout.flush()
+    gclib.Log('', utcnow)
 

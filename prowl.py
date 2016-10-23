@@ -27,5 +27,10 @@ class Prowl(object):
                + '&description=' + urllib.parse.quote(desc))
         if info_url is not None:
             url += '&url=' + urllib.parse.quote(info_url)
-        requests.get(url)
-
+        try:
+            requests.get(url)
+        except(requests.exceptions.ConnectTimeout,
+               requests.exceptions.ReadTimeout,
+               requests.exceptions.ConnectionError):
+            print('Error getting Prowl URL', url)
+            # TODO: show actual exception with any relevant error message
