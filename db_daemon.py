@@ -13,7 +13,7 @@ import pymysql
 
 import gclib
 
-def Consolidate(cur, utcnow):
+def consolidate(cur, utcnow):
     # Get the timestamp of the most recent consolidation.
     # If none, use oldest timestamp in used table.
     # If none, use utcnow.
@@ -77,7 +77,7 @@ def Consolidate(cur, utcnow):
                 + end_stamp.isoformat() + '"')
     return end_stamp
 
-def Cull(cur, end_stamp):
+def cull(cur, end_stamp):
     cur.execute('SELECT history_days FROM settings')
     row = cur.fetchone()
     if row is None:
@@ -96,19 +96,19 @@ def Cull(cur, end_stamp):
               (datetime.datetime.utcnow() - start).total_seconds(), 'seconds')
         sys.stdout.flush()
 
-def Terminate(signum, frame):
-    gclib.Log('***** Stopping Greener Circuits Database Daemon *****')
+def terminate(signum, frame):
+    gclib.log('***** Stopping Greener Circuits Database Daemon *****')
     sys.exit()
 
 
-gclib.Log('***** Starting Greener Circuits Database Daemon *****')
+gclib.log('***** Starting Greener Circuits Database Daemon *****')
 
 # Set terminate handler
-signal.signal(signal.SIGTERM, Terminate)
-signal.signal(signal.SIGINT, Terminate)
+signal.signal(signal.SIGTERM, terminate)
+signal.signal(signal.SIGINT, terminate)
 
 # Connect to database.
-db = gclib.ConnectDB()
+db = gclib.connect_db()
 
 # Start main loop.
 while True:
@@ -122,11 +122,11 @@ while True:
     cur.execute('START TRANSACTION')
 
     # Perform consolidation.
-    end_stamp = Consolidate(cur, utcnow)
+    end_stamp = consolidate(cur, utcnow)
 
     # Once an hour delete rows older than number of days specified in settings.
     if utcnow.minute == 0:
-        Cull(cur, end_stamp)
+        cull(cur, end_stamp)
 
     # Done with this pass - close and commit.
     cur.execute('COMMIT')

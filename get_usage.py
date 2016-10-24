@@ -16,8 +16,8 @@ from bs4 import BeautifulSoup
 import gclib
 import prowl
 
-def Terminate(signum, frame):
-    gclib.Log('***** Stopping Greener Circuits Database Update *****')
+def terminate(signum, frame):
+    gclib.log('***** Stopping Greener Circuits Database Update *****')
     sys.exit()
 
 # globals
@@ -25,14 +25,14 @@ fails = []
 max_fails = 90
 inc = 10  # Read web page from each eMonitor IP every inc seconds (max 60).
 
-gclib.Log('***** Starting Greener Circuits Database Update *****')
+gclib.log('***** Starting Greener Circuits Database Update *****')
 
 # Set terminate handler
-signal.signal(signal.SIGTERM, Terminate)
-signal.signal(signal.SIGINT, Terminate)
+signal.signal(signal.SIGTERM, terminate)
+signal.signal(signal.SIGINT, terminate)
 
 # Connect to database.
-db = gclib.ConnectDB()
+db = gclib.connect_db()
 
 # Instantiate prowlapp.com interface object.
 prowl = prowl.Prowl()
@@ -45,7 +45,7 @@ for idx, ip in enumerate(ips):
 
 while True:
     # Update database every 10 seconds.
-    utcnow = gclib.SyncSecs(10)
+    utcnow = gclib.sync_secs(10)
 
     # Get database cursor, start a transaction, and get current channel list.
     cur = db.cursor()
@@ -84,7 +84,7 @@ while True:
             msg += ' failure'
             if fails[idx] > 1:
                 msg += 's'
-            gclib.Log(msg)
+            gclib.log(msg)
             fails[idx] = 0
 
         updated = True
@@ -141,5 +141,5 @@ while True:
     db.commit()  # TODO: is this necessary since we executed COMMIT?
 
     # Print update time.
-    gclib.Log('', utcnow)
+    gclib.log('', utcnow)
 

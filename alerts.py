@@ -14,15 +14,14 @@ import signal
 import gclib
 import prowl
 
-def ChannelURL(channum):
-    return 'http://' + gclib.GcIP() + '/power.php?channel=' + str(channum)
+def channelURL(channum):
+    return 'http://' + gclib.gcIP() + '/power.php?channel=' + str(channum)
 
-def Alert(event, desc, info_url=None):
-    print(event, desc)
-    sys.stdout.flush()
+def alert(event, desc, info_url=None):
+    gclib.log(event+' '+desc)
     prowl.notify(event, desc, info_url)
 
-def DatabaseUpdating(cur):
+def database_updating(cur):
     global updating
     # If database has not been updated in the last 60 seconds, send alert.
     cur.execute('SELECT MAX(stamp) FROM used')
@@ -30,17 +29,17 @@ def DatabaseUpdating(cur):
     stamp = row[0]
     if (utcnow - stamp).total_seconds() > 60:
         if updating:
-            Alert('***** UPDATES STOPPED *****',
+            alert('***** UPDATES STOPPED *****',
                   'Last database update more than 1 minute ago')
             updating = False
     else:
         if not updating:
-            Alert('***** updates resumed *****',
+            alert('***** updates resumed *****',
                   'Database updates have resumed')
             updating = True
     return updating
 
-def TestAlert(cur, row, localnow):
+def test_alert(cur, row, localnow):
     id = row[0]
     channum = row[1]
     # Set "compare" to the opposite of the condition we are looking
@@ -76,7 +75,7 @@ def TestAlert(cur, row, localnow):
             message = ('Circuit "' + name + '" is still ' + msgzero + ' '
                        + str(watts) + ' watts and it is now outside the '
                        'monitoring time - clearing alert')
-            Alert('power alert', message, ChannelURL(channum))
+            alert('power alert', message, channelURL(channum))
             cur.execute('UPDATE alert SET alerted=0 WHERE id=' + str(id))
         return
     sql = ('SELECT COUNT(*) FROM used WHERE channum=' + str(channum) +\
@@ -97,28 +96,26 @@ def TestAlert(cur, row, localnow):
             message = ('Circuit "' + name + '" has been ' + msgzero + ' '
                        + str(watts) + ' watts for more than '
                        + str(minutes) + ' minutes' + message)
-            Alert('POWER ALERT', message, ChannelURL(channum))
+            alert('POWER ALERT', message, channelURL(channum))
             cur.execute('UPDATE alert SET alerted=1 WHERE id=' + str(id))
         else:
             message = ('Circuit "' + name + '" has ' + msgnonzero + ' '
                        + str(watts) + ' watts')
-            Alert('power alert', message, ChannelURL(channum))
+            alert('power alert', message, channelURL(channum))
             cur.execute('UPDATE alert SET alerted=0 WHERE id=' + str(id))
 
-def Terminate(signum, frame):
-    gclib.Log('***** Stopping Greener Circuits Alerts *****')
-    sys.stdout.flush()
+def terminate(signum, frame):
+    gclib.log('***** Stopping Greener Circuits Alerts *****')
     sys.exit()
 
-gclib.Log('***** Starting Greener Circuits Alerts *****')
-sys.stdout.flush()
+gclib.log('***** Starting Greener Circuits Alerts *****')
 
 # Set terminate handler
-signal.signal(signal.SIGTERM, Terminate)
-signal.signal(signal.SIGINT, Terminate)
+signal.signal(signal.SIGTERM, terminate)
+signal.signal(signal.SIGINT, terminate)
 
 # Connect to database.
-db = gclib.ConnectDB()
+db = gclib.connect_db()
 
 # Instantiate prowlapp.com interface object.
 prowl = prowl.Prowl()
@@ -127,12 +124,12 @@ prowl = prowl.Prowl()
 updating = True
 
 # Get time zone.
-timezone = gclib.GetTimeZone()
+timezone = gclib.get_time_zone()
 
 # Start main loop.
 while True:
     # Wait until the start of a minute (only check alerts once per minute).
-    utcnow = gclib.SyncSecs(60)
+    utcnow = gclib.sync_secs(60)
     localnow = utcnow + timezone
 
     # Call db.commit() to renew our view of the database.
@@ -142,19 +139,19 @@ while True:
     cur = db.cursor()
 
     # Verify database is being updated.
-    if DatabaseUpdating(cur):
+    if database_updating(cur):
 
         # Test each alert in the alert table.
         cur.execute('SELECT id, channum, greater, watts, minutes, start, '
                     'end, message, alerted from alert')
         for row in cur.fetchall():
-            TestAlert(cur, row, localnow)
+            test_alert(cur, row, localnow)
 
     # Done with this pass - close cursor.
     cur.close()
 
     # Print update time.
-    gclib.Log('', utcnow)
+    gclib.log('', utcnow)
 
     # Ensure this loop is not done more often than once per second.
     time.sleep(1)
