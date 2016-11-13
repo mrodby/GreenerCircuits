@@ -55,7 +55,7 @@
       project. The web pages are so simple that I didn’t bother with a more
       powerful framework. If this were to turn into something real, I would
       convert it to a real web framework, such as Ruby on Rails.<br/>
-      <img src='http://66.75.74.92/images/gcpower.png'
+      <img src='images/gcpower.png'
       alt='Sample Greener Circuits display' width='90%'><br/>
       This example shows the electricity used by my refrigerator over a 24 hour
       period. Note that around mealtimes the compressor is on for longer than it
