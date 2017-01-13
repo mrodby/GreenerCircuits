@@ -72,6 +72,8 @@ def test_alert(cur, row, localnow):
     if ((end > start and (localtime < start or localtime >= end)) or
         (end < start and (localtime >= end and localtime < start))):
         if alerted:
+            cur.execute('SELECT name FROM channel WHERE channum='
+                        + str(channum))
             message = ('Circuit "' + name + '" is still ' + msgzero + ' '
                        + str(watts) + ' watts and it is now outside the '
                        'monitoring time - clearing alert')
