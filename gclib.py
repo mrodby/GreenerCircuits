@@ -3,12 +3,12 @@ import datetime
 import time
 import sys
 
-def gcIP():
-    return '66.75.74.92'
+def gcBaseURL():
+    return 'rodby.us'
 
 def connect_db():
     # Connect to database.
-    db = pymysql.connect(host='localhost',
+    db = pymysql.connect(host=gcBaseURL(),
                          user='eMonitor',
 #                         passwd='xxxxxxxx', - will be filled in from .my.cnf
                          db='eMonitor',

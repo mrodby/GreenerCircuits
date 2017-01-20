@@ -15,7 +15,7 @@ import gclib
 import prowl
 
 def channelURL(channum):
-    return 'http://' + gclib.gcIP() + '/power.php?channel=' + str(channum)
+    return 'http://' + gclib.gcBaseURL() + '/power.php?channel=' + str(channum)
 
 def alert(event, desc, info_url=None):
     gclib.log(event+' '+desc)
