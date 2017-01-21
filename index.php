@@ -40,7 +40,7 @@
   <br/>My projects have included:
   <ul>
     <li>
-      <a href='http://98.151.142.85/power.php'>Greener Circuits:</a>
+      <a href='http://www.rodby.org/power.php'>Greener Circuits:</a>
       Python programs and PHP web
       pages that monitor the power used by each circuit of my house, keep
       track of that usage in a database, graphs usage over time, and notify
@@ -48,7 +48,7 @@
       monitoring device itself, all of the software (including the database
       and web server) runs in a <a href='https://www.adafruit.com/products/2885'>
       Raspberry Pi Zero</a>, a tiny $5 computer that runs Linux. You can see
-      the results <a href='http://98.151.142.85/power.php'>here</a>, and the
+      the results <a href='http://www.rodby.org/power.php'>here</a>, and the
       source code is available on GitHub
       <a href='https://github.com/mrodby/GreenerCircuits'>here</a>.
       I wrote all of the custom software for this
