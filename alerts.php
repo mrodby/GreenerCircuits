@@ -9,10 +9,8 @@ error_reporting(E_ALL);
 ini_set('display_errors', true);
 ini_set('html_errors', false);
 
-$servername = "localhost";
-$username = $_SERVER["DB_USER"];
-$password = $_SERVER["DB_PASSWORD"];
-$dbname = "eMonitor";
+// set variables to connect with database
+include 'db.php';
 
 // Create database connection
 $conn = new mysqli($servername, $username, $password, $dbname);
