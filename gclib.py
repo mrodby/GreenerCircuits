@@ -4,15 +4,13 @@ import time
 import sys
 
 def gcBaseURL():
-    return 'rodby.us'
+    # Note: Set this to an appropriate value
+    return 'rodby.org'
 
 def connect_db():
     # Connect to database.
-    db = pymysql.connect(host=gcBaseURL(),
-                         user='eMonitor',
-#                         passwd='xxxxxxxx', - will be filled in from .my.cnf
-                         db='eMonitor',
-                         read_default_file='/home/mrodby/.my.cnf')
+    # Note: Set the database name and default file to appropriate values
+    db = pymysql.connect(db='mrodby_GC', read_default_file='/home/mrodby/.my.cnf.rodby.org')
     return db
 
 def get_time_zone():
