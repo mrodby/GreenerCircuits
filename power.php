@@ -74,11 +74,13 @@ if ($conn->connect_error)
           $row = $result->fetch_assoc();
           $name = $row["name"];
 
-          $sql = "SELECT FROM_UNIXTIME(UNIX_TIMESTAMP(stamp) DIV " . $interval . " * " . $interval . ") AS Time, " .
+          $sql = "SELECT FROM_UNIXTIME(UNIX_TIMESTAMP(stamp) DIV " .
+                     $interval . " * " . $interval . ") AS Time, " .
                      "ROUND(AVG(watts)) AS Power " .
                  "FROM used " .
                  "WHERE channum = " . $chan .
-                      " AND stamp BETWEEN DATE_ADD('" . $end . "', INTERVAL -" . $hours . " HOUR) AND '" . $end . "' " .
+                      " AND stamp BETWEEN DATE_ADD('" . $end .
+                      "', INTERVAL -" . $hours . " HOUR) AND '" . $end . "' " .
                  "GROUP BY UNIX_TIMESTAMP(stamp) DIV " . $interval;
           $result = $conn->query($sql);
           if ($result->num_rows <= 0)
@@ -91,14 +93,16 @@ if ($conn->connect_error)
             # note: $time is in the format YYYY-MM-DD HH:MM:SS
             # - to work in Safari and IE a T needs to be between date and time,
             #   and for proper time zone adjustment, a 'Z' needs to be appended
-            echo "[new Date('".substr($time,0,10)."T".substr($time,11,5)."Z'),".$power."],";
+            echo "[new Date('" . substr($time,0,10) . "T" .
+                 substr($time,11,5) . "Z')," . $power . "],";
             $total += $power;
           }
         ?>
       ]);
 
       var options = {
-        title: "<?php echo $name; $kWh = round($total/(3600/$interval)/1000,3); echo " (Total: " . $kWh . " kWh)"; /* note: do not call htmlspecialchars here */ ?>",
+        title: "<?php echo $name; $kWh = round($total/(3600/$interval)/1000,3);
+            echo " (Total: " . $kWh . " kWh)"; /* note: do not call htmlspecialchars here */ ?>",
         chartArea:{left:50,top:30,right:10,bottom:40,width:"100%",height:"100%"},
         legend: { position: "none" }
       };
@@ -131,7 +135,8 @@ if ($conn->connect_error)
           if ($result->num_rows > 0) {
             echo "<table>";
             while($row = $result->fetch_assoc()) {
-              echo "<tr><td align='right'>" . $row["watts"] . "</td><td>" . "<a href='power.php?" .
+              echo "<tr><td align='right'>" . $row["watts"] . "</td><td>" .
+                "<a href='power.php?" .
                 "channel=" . $row["channum"] .
                 "&interval=" . $interval .
                 "&hours=" . $hours .

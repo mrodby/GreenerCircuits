@@ -9,8 +9,12 @@ def gcBaseURL():
 
 def connect_db():
     # Connect to database.
-    # Note: Set the database name and default file to appropriate values
-    db = pymysql.connect(db='mrodby_GC', read_default_file='/home/mrodby/.my.cnf.rodby.org', connect_timeout=20, read_timeout=20, write_timeout=20)
+    # Note: Set these to appropriate values
+    db = pymysql.connect(db='mrodby_GC',
+                         read_default_file='/home/mrodby/.my.cnf.rodby.org',
+                         connect_timeout=20,
+                         read_timeout=20,
+                         write_timeout=20)
     return db
 
 def get_time_zone():

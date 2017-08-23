@@ -7,7 +7,6 @@
 # send an alert via prowlapp.com.
 
 import requests
-import datetime
 import time
 import sys
 import signal

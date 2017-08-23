@@ -75,6 +75,8 @@ def test_alert(cur, row, localnow):
         if alerted:
             cur.execute('SELECT name FROM channel WHERE channum='
                         + str(channum))
+            # This assumes channel exists. # TODO: handle case where it doesn't
+            name=cur.fetchone()[0]
             message = ('Circuit "' + name + '" is still ' + msgzero + ' '
                        + str(watts) + ' watts and it is now outside the '
                        'monitoring time - clearing alert')
@@ -93,7 +95,7 @@ def test_alert(cur, row, localnow):
     if (countrow[0] == 0) != alerted:
         cur.execute('SELECT name FROM channel WHERE channum='
                     + str(channum))
-        # This assumes channel exists. TODO: handle case where it does not
+        # This assumes channel exists. # TODO: handle case where it does not
         name=cur.fetchone()[0]
         if not alerted:
             message = ('Circuit "' + name + '" has been ' + msgzero + ' '
@@ -165,11 +167,11 @@ while True:
 
         print('Writing stack trace to stderr')
         print('Writing stack trace to stderr', file=sys.stderr)
-        traceback.print_exc(file=sys.stderr)   # default, but just to be explicit
+        traceback.print_exc(file=sys.stderr)   # default, but to be explicit
         print('Writing stack trace to stdout')
         print('Writing stack trace to stdout', file=sys.stderr)
         traceback.print_exc(file=sys.stdout)   # TODO: remove this one when sufficiently tested
-        time.sleep(2)  # Ensure we don't get multiple exceptions per update cycle
+        time.sleep(2)  # Ensure we don't get multiple exceptions per loop
         db.close()
         # Reconnect to database.
         db = gclib.connect_db()
