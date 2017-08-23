@@ -5,12 +5,12 @@
 
 # Set WWW to the directory where your web server expects files
 # - images are stored in $WWW/images
-export WWW=~/www
+export WWW=rodby.org:public_html
 
 # There is a race condition here - if db.php is copied, then someone accesses
 # it before it is overwritten with the installation-specific version, database
 # access will fail. Hopefully that will happen very seldom, if ever.
-$SUDO cp *.php main.css $WWW
-$SUDO cp db.php.* $WWW/db.php
-$SUDO cp *.jpg *.png *.ico $WWW/images/
+$SUDO scp -P 2222 *.php main.css $WWW
+$SUDO scp -P 2222 ../db.php $WWW/db.php
+$SUDO scp -P 2222 *.jpg *.png *.ico $WWW/images/
 

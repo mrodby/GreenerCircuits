@@ -10,6 +10,7 @@ import datetime
 import time
 import sys
 import signal
+import traceback
 
 import gclib
 import prowl
@@ -133,28 +134,43 @@ while True:
     # Wait until the start of a minute (only check alerts once per minute).
     utcnow = gclib.sync_secs(60)
     localnow = utcnow + timezone
-
-    # Call db.commit() to renew our view of the database.
-    db.commit()
-
-    # Get database cursor.
-    cur = db.cursor()
-
-    # Verify database is being updated.
-    if database_updating(cur):
-
-        # Test each alert in the alert table.
-        cur.execute('SELECT id, channum, greater, watts, minutes, start, '
-                    'end, message, alerted from alert')
-        for row in cur.fetchall():
-            test_alert(cur, row, localnow)
-
-    # Done with this pass - close cursor.
-    cur.close()
-
     # Print update time.
     gclib.log('', utcnow)
 
-    # Ensure this loop is not done more often than once per second.
-    time.sleep(1)
+
+    try:
+
+        # Call db.commit() to renew our view of the database.
+        db.commit()
+
+        # Get database cursor.
+        cur = db.cursor()
+
+        # Verify database is being updated.
+        if database_updating(cur):
+
+            # Test each alert in the alert table.
+            cur.execute('SELECT id, channum, greater, watts, minutes, start, '
+                        'end, message, alerted from alert')
+            for row in cur.fetchall():
+                test_alert(cur, row, localnow)
+
+        # Done with this pass - close cursor.
+        cur.close()
+
+        # Ensure this loop is not done more often than once per second.
+        time.sleep(1)
+
+    except:
+
+        print('Writing stack trace to stderr')
+        print('Writing stack trace to stderr', file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)   # default, but just to be explicit
+        print('Writing stack trace to stdout')
+        print('Writing stack trace to stdout', file=sys.stderr)
+        traceback.print_exc(file=sys.stdout)   # TODO: remove this one when sufficiently tested
+        time.sleep(2)  # Ensure we don't get multiple exceptions per update cycle
+        db.close()
+        # Reconnect to database.
+        db = gclib.connect_db()
 

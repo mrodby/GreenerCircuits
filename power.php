@@ -112,7 +112,12 @@ if ($conn->connect_error)
   <?php
     include 'nav.php';
   ?>
-  <h1><br/>Greener Circuits Power Usage</h2>
+  <h1><br/>Greener Circuits Power Usage</h1>
+  Last updated 
+  <?php
+    $time = time() - date('Z');
+    echo date('Y-m-d', $time) . ' ' . date('H:i:s', $time);
+  ?>        
   <br/>
 
   <table width='100%'>
