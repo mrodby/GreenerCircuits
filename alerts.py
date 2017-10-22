@@ -119,9 +119,6 @@ gclib.log('***** Starting Greener Circuits Alerts *****')
 signal.signal(signal.SIGTERM, terminate)
 signal.signal(signal.SIGINT, terminate)
 
-# Connect to database.
-db = gclib.connect_db()
-
 # Instantiate prowlapp.com interface object.
 prowl = prowl.Prowl()
 
@@ -131,16 +128,22 @@ updating = True
 # Get time zone.
 timezone = gclib.get_time_zone()
 
+db = None
+
 # Start main loop.
 while True:
     # Wait until the start of a minute (only check alerts once per minute).
     utcnow = gclib.sync_secs(60)
     localnow = utcnow + timezone
-    # Print update time.
-    gclib.log('', utcnow)
-
 
     try:
+        # Print update time.
+        gclib.log('', utcnow)
+
+        # Connect or reconnect to database.
+        if db is None:
+            gclib.log('(Re)Connecting to database...')
+            db = gclib.connect_db()
 
         # Call db.commit() to renew our view of the database.
         db.commit()
@@ -172,7 +175,5 @@ while True:
         print('Writing stack trace to stdout', file=sys.stderr)
         traceback.print_exc(file=sys.stdout)   # TODO: remove this one when sufficiently tested
         time.sleep(2)  # Ensure we don't get multiple exceptions per loop
-        db.close()
-        # Reconnect to database.
-        db = gclib.connect_db()
+        db = None
 

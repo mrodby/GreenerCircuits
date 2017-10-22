@@ -33,9 +33,6 @@ gclib.log('***** Starting Greener Circuits Database Update *****')
 signal.signal(signal.SIGTERM, terminate)
 signal.signal(signal.SIGINT, terminate)
 
-# Connect to database.
-db = gclib.connect_db()
-
 # Instantiate prowlapp.com interface object.
 prowl = prowl.Prowl()
 
@@ -47,14 +44,21 @@ with open('eMonitors') as f:
 for idx, ip in enumerate(ips):
     fails.append(0)
 
+db = None
+
 while True:
     # Update database every 10 seconds.
     utcnow = gclib.sync_secs(10)
 
-    # Print update time.
-    gclib.log('', utcnow)
-
     try:
+
+        # Print update time.
+        gclib.log('', utcnow)
+
+        # Connect or reconnect to database.
+        if db is None:
+            gclib.log('(Re)Connecting to database...')
+            db = gclib.connect_db()
 
         # Get database cursor, start a transaction, and get current channel list.
         cur = db.cursor()
@@ -163,7 +167,7 @@ while True:
         db.commit()  # TODO: is this necessary since we executed COMMIT?
         gclib.log('Returned from db.commit')
 
-    except(pymysql.err.OperationalError, pymysql.err.InternalError):
+    except(pymysql.err.OperationalError, pymysql.err.InternalError, ConnectionResetError):
         print('Writing stack trace to stderr')
         print('Writing stack trace to stderr', file=sys.stderr)
         traceback.print_exc(file=sys.stderr)   # default, but just to be explicit
@@ -171,7 +175,5 @@ while True:
         print('Writing stack trace to stdout', file=sys.stderr)
         traceback.print_exc(file=sys.stdout)   # TODO: remove this one when sufficiently tested
         time.sleep(2)  # Ensure we don't get multiple exceptions per update cycle
-        db.close()
-        # Reconnect to database.
-        db = gclib.connect_db()
+        db = None
 
