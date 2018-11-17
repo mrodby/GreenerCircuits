@@ -12,9 +12,9 @@ def connect_db():
     # Note: Set these to appropriate values
     db = pymysql.connect(db='mrodby_GC',
                          read_default_file='/home/mrodby/.my.cnf.rodby.org',
-                         connect_timeout=20,
-                         read_timeout=20,
-                         write_timeout=20)
+                         connect_timeout=30,
+                         read_timeout=30,
+                         write_timeout=30)
     return db
 
 def get_time_zone():

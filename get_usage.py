@@ -73,14 +73,14 @@ while True:
         updated = False
 
         for idx, ip in enumerate(ips):
-            gclib.log('Getting page from ' + ip)
+            #gclib.log('Getting page from ' + ip)
             try:
                 response = requests.get('http://' + ip, timeout=5)
                 if response.status_code != 200:
                     gclib.log('Invalid HTTP response from ' + ip + ': ' +
                            response.status_code)
                     continue
-                gclib.log('Got page from ' + ip)
+                #gclib.log('Got page from ' + ip)
 
             except(requests.exceptions.ConnectTimeout,
                    requests.exceptions.ReadTimeout,
@@ -106,7 +106,7 @@ while True:
 
             updated = True
 
-            gclib.log('Passing page through Beautiful Soup parser')
+            #gclib.log('Passing page through Beautiful Soup parser')
 
             # Pass page through Beautiful Soup HTML parser,
             # insert each row into database:
@@ -138,12 +138,12 @@ while True:
                     sql = sql + ('UPDATE channel SET watts=' + str(watts)
                           + ', stamp="' + utcnow.isoformat()
                           + '" WHERE channum=' + str(channum) + ';')
-            gclib.log('Inserting into database')
+            #gclib.log('Inserting into database')
             cur.execute(sql)
-            gclib.log('Finished inserting into database')
+            #gclib.log('Finished inserting into database')
 
         if updated:
-            gclib.log('Inserting sum of current values into database')
+            #gclib.log('Inserting sum of current values into database')
             # Put sum of current values into channel 0, in used and channel tables.
             sql = 'SELECT SUM(watts) FROM channel WHERE type > 0'
             cur.execute(sql)
@@ -155,17 +155,17 @@ while True:
             sql = ('UPDATE channel SET watts=' + str(watts)
                    + ', stamp="' + utcnow.isoformat() + '" WHERE channum=0')
             cur.execute(sql)
-            gclib.log('Finished inserting sum of current values into database')
+            #gclib.log('Finished inserting sum of current values into database')
 
         # Done with this pass - commit transaction, close cursor,
         # and commit changes to database.
-        gclib.log('Committing changes')
+        #gclib.log('Committing changes')
         cur.execute('COMMIT')
-        gclib.log('Closing cursor')
+        #gclib.log('Closing cursor')
         cur.close()
-        gclib.log('Calling db.commit')
+        #gclib.log('Calling db.commit')
         db.commit()  # TODO: is this necessary since we executed COMMIT?
-        gclib.log('Returned from db.commit')
+        #gclib.log('Returned from db.commit')
 
     except(pymysql.err.OperationalError, pymysql.err.InternalError, ConnectionResetError):
         print('Writing stack trace to stderr')
