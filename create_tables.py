@@ -3,7 +3,7 @@
 import gclib
 
 # Connect to database.
-db = gclib.connect_db()
+db = gclib.connect_db('mrodby_gc')
 
 cur = db.cursor()
 
