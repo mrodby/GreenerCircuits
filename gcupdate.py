@@ -12,7 +12,7 @@ import sys
 import signal
 import traceback
 import requests
-import pymysql
+import MySQLdb as sql
 
 from bs4 import BeautifulSoup
 
@@ -56,13 +56,16 @@ def main():
 
         try:
 
-            # Print update time.
+            # Log update time.
             gclib.log('', utcnow)
 
             # Connect or reconnect to database.
             if database is None:
                 gclib.log('(Re)Connecting to database...')
                 database = gclib.connect_db('mrodby_gc')
+                if database is None:
+                    time.sleep(1)
+                    continue
 
             # Get database cursor, start a transaction, and get current channel list.
             cur = database.cursor()
@@ -119,7 +122,7 @@ def main():
                 soup = BeautifulSoup(response.content, 'html5lib')
                 table = soup.find('table', { 'class' : 'channel-data' })
                 prev_watts = 0
-                sql = ''
+                sql_text = ''
                 for row in table.findAll('tr'):
                     cells = row.findAll('td')
                     if len(cells) == 3:
@@ -137,28 +140,28 @@ def main():
                         prev_watts = watts
                         if chantype == 0:
                             continue
-                        sql = sql + ('INSERT INTO used VALUES (' + str(channum) + ', '
+                        sql_text = sql_text + ('INSERT INTO used VALUES (' + str(channum) + ', '
                             + str(watts) + ', "' + utcnow.isoformat() + '");')
-                        sql = sql + ('UPDATE channel SET watts=' + str(watts)
+                        sql_text = sql_text + ('UPDATE channel SET watts=' + str(watts)
                             + ', stamp="' + utcnow.isoformat()
                             + '" WHERE channum=' + str(channum) + ';')
-                gclib.log('Inserting into database: ' + sql)
-                cur.execute(sql)
+                gclib.log('Inserting into database: ' + sql_text)
+                cur.execute(sql_text)
                 #gclib.log('Finished inserting into database')
 
             if updated:
                 #gclib.log('Inserting sum of current values into database')
                 # Put sum of current values into channel 0, in used and channel tables.
-                sql = 'SELECT SUM(watts) FROM channel WHERE type > 0'
-                cur.execute(sql)
+                sql_text = 'SELECT SUM(watts) FROM channel WHERE type > 0'
+                cur.execute(sql_text)
                 row = cur.fetchone()
                 watts = row[0]
-                sql = ('INSERT INTO used VALUES(0, ' + str(watts)
+                sql_text = ('INSERT INTO used VALUES(0, ' + str(watts)
                     + ', "' + utcnow.isoformat() + '")')
-                cur.execute(sql)
-                sql = ('UPDATE channel SET watts=' + str(watts)
+                cur.execute(sql_text)
+                sql_text = ('UPDATE channel SET watts=' + str(watts)
                     + ', stamp="' + utcnow.isoformat() + '" WHERE channum=0')
-                cur.execute(sql)
+                cur.execute(sql_text)
                 #gclib.log('Finished inserting sum of current values into database')
 
             # Done with this pass - commit transaction, close cursor,
@@ -171,7 +174,7 @@ def main():
             database.commit()  # TODO: is this necessary since we executed COMMIT?
             #gclib.log('Returned from db.commit')
 
-        except(pymysql.err.OperationalError, pymysql.err.InternalError, ConnectionResetError):
+        except(sql.OperationalError, sql.InternalError, ConnectionResetError):
             print('Writing stack trace to stderr')
             print('Writing stack trace to stderr', file=sys.stderr)
             traceback.print_exc(file=sys.stderr)   # default, but just to be explicit

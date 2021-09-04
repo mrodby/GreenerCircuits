@@ -3,8 +3,7 @@
 import datetime
 import time
 import sys
-import pymysql
-import pymysql.constants
+import MySQLdb as sql
 
 def gc_host():
     '''Return host name'''
@@ -12,12 +11,11 @@ def gc_host():
 
 def connect_db(database):
     '''Connect to database'''
-    return pymysql.connect(db=database,
+    return sql.connect(db=database,
                            read_default_file='/home/mrodby/.my.cnf',
                            connect_timeout=30,
                            read_timeout=30,
-                           write_timeout=30,
-                           client_flag=pymysql.constants.CLIENT.MULTI_STATEMENTS)
+                           write_timeout=30)
 
 def get_time_zone():
     '''Return time zone of local machine'''
