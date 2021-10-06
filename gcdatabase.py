@@ -3,11 +3,13 @@
 from datetime import datetime, timedelta
 import sys
 import os
-from sqlalchemy import create_engine, MetaData, Table, text, select, update, func
-#from sqlalchemy.dialects.mysql import TINYINT
+from sqlalchemy import create_engine
+from sqlalchemy import MetaData, Table, Column, Integer, DateTime, String, Float
+from sqlalchemy import text, select, update, func
+from sqlalchemy.dialects.mysql import TINYINT, TIME
 
 
-class GCDatabase:
+class GCDatabase:   #pylint: disable=too-many-instance-attributes
     '''This class represents the Greener Circuits database'''
 
     def __init__(self):
@@ -23,12 +25,93 @@ class GCDatabase:
         self.engine = create_engine(os.environ[connect_env], future=True, echo=False)
 
         self.metadata = MetaData()
+        # To auto-load table structures from database, use this:
+        #self.auto_load_tables()
+
+        # To create table structures from scratch, use these:
+        self.alert_table = self.define_alert_table()
+        self.channel_table = self.define_channel_table()
+        self.settings_table = self.define_settings_table()
+        self.used_table = self.define_used_table()
+        self.scratchpad_table = self.define_scratchpad_table()  # Copy of used, so defined here
+
+
+    def auto_load_tables(self):
+        '''Load table structures from the database'''
+
         with self.engine.connect() as conn:
             self.alert_table = Table('alert', self.metadata, autoload_with=conn)
             self.channel_table = Table('channel', self.metadata, autoload_with=conn)
             self.scratchpad_table = Table('scratchpad', self.metadata, autoload_with=conn)
             self.settings_table = Table('settings', self.metadata, autoload_with=conn)
             self.used_table = Table('used', self.metadata, autoload_with=conn)
+
+
+    def create_tables(self):
+        '''Once tables have been defined, create them'''
+
+        self.metadata.create_all(self.engine)
+
+
+    def define_alert_table(self):
+        '''Define the alert table structure'''
+
+        return Table(
+            'alert',
+            self.metadata,
+            Column('id', Integer, primary_key=True),
+            Column('channum', Integer),
+            Column('greater', TINYINT),
+            Column('watts', Integer),
+            Column('minutes', Integer),
+            Column('start', TIME),
+            Column('end', TIME),
+            Column('message', String(255)),
+            Column('alerted', TINYINT)
+        )
+
+
+    def define_channel_table(self):
+        '''Define the channel table structure'''
+
+        return Table(
+            'channel',
+            self.metadata,
+            Column('channum', Integer, primary_key=True),
+            Column('name', String(255)),
+            Column('type', Integer),
+            Column('watts', Float),
+            Column('stamp', DateTime)
+        )
+
+
+    def define_scratchpad_table(self):
+        '''Define the scratchpad table structure (a copy of used)'''
+
+        return self.used_table
+
+
+    def define_settings_table(self):
+        '''Define the settings table structure'''
+
+        return Table(
+            'settings',
+            self.metadata,
+            Column('consolidate_stamp', DateTime),
+            Column('history_days', Integer)
+        )
+
+
+    def define_used_table(self):
+        '''Define the used table structure'''
+
+        return Table(
+            'used',
+            self.metadata,
+            Column('channum', Integer),
+            Column('watts', Integer),
+            Column('stamp', DateTime)
+        )
 
 
     def delete_alerts(self):
@@ -38,7 +121,7 @@ class GCDatabase:
         self.alert_id = 1
 
 
-    def create_alert(self, channum, greater, watts, minutes, start, end, message):
+    def create_alert(self, channum, greater, watts, minutes, start, end, message):  #pylint: disable=too-many-arguments
         '''Create an entry in the alert table'''
 
         # Convert times to datetimes to satisfy SQLAlchemy
@@ -120,19 +203,3 @@ class GCDatabase:
             old_updating = self.updating
             self.updating = (datetime.utcnow() - stamp).total_seconds() < 60
             return self.updating != old_updating
-
-
-#This is how we would define the alerts table 'by hand'
-#self.alerts_table = Table(
-#    'alert',
-#    self.metadata,
-#    Column('id', Integer, primary_key=True),
-#    Column('channum', Integer),
-#    Column('greater', TINYINT),
-#    Column('watts', Integer),
-#    Column('minutes', Integer),
-#    Column('start', DateTime),
-#    Column('end', DateTime),
-#    Column('message', String(255)),
-#    Column('alerted', TINYINT)
-#)
