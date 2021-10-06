@@ -145,7 +145,7 @@ def main():
                         sql_text = sql_text + ('UPDATE channel SET watts=' + str(watts)
                             + ', stamp="' + utcnow.isoformat()
                             + '" WHERE channum=' + str(channum) + ';')
-                gclib.log('Inserting into database: ' + sql_text)
+                #gclib.log('Inserting into database: ' + sql_text)
                 cur.execute(sql_text)
                 #gclib.log('Finished inserting into database')
 
