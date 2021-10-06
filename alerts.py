@@ -1,179 +1,139 @@
 #!/usr/bin/python3
+'''
+Component of Greener Circuits:
+Once each minute check each entry in the alert table to see if its
+conditions have been met.  When a condition is met (or when a
+condition had previously been met but is now resolved), send an alert
+via prowlapp.com.
+'''
 
-# Component of Greener Circuits:
-# Once each minute check each entry in the alerts table to see if its
-# conditions have been met.  When a condition is met (or when a
-# condition had previously been met but is now resolved), send an alert
-# via prowlapp.com.
-
-import datetime
+from datetime import datetime
 import time
 import sys
 import signal
 import traceback
 
 import gclib
+from gcdatabase import GCDatabase
 import prowl
 
-def channelURL(channum):
+def channel_url(channum):
+    '''Return URL for channel channum'''
+
     return 'http://' + gclib.gc_host() + '/power.php?channel=' + str(channum)
 
-def alert(event, desc, info_url=None):
-    gclib.log(event+' '+desc)
-    prowl.notify(event, desc, info_url)
 
-def database_updating(cur):
-    global updating
-    # If database has not been updated in the last 60 seconds, send alert.
-    cur.execute('SELECT MAX(stamp) FROM used')
-    row = cur.fetchone()
-    stamp = row[0]
-    if (utcnow - stamp).total_seconds() > 60:
-        if updating:
-            alert('***** UPDATES STOPPED *****',
-                  'Last database update more than 1 minute ago')
-            updating = False
+def new_alert(event, desc, prowlapp, info_url=None):
+    '''Log event and notify Prowl, optionally include a URL for more info'''
+
+    gclib.log(event + ' ' + desc)
+    prowlapp.notify(event, desc, info_url)
+
+
+def check_alert(gc_database, alert, prowlapp):
+    '''Check this alert'''
+
+    # Set msg_still to indicate current state and msg_newly to indicate a change
+    if alert.greater:
+        msg_still = 'above'
+        msg_newly = 'fallen below'
     else:
-        if not updating:
-            alert('***** updates resumed *****',
-                  'Database updates have resumed')
-            updating = True
-    return updating
+        msg_still = 'below'
+        msg_newly = 'risen above'
 
-def test_alert(cur, row, localnow):
-    id = row[0]
-    channum = row[1]
-    # Set "compare" to the opposite of the condition we are looking
-    # for, since our trigger is zero occurrences of "compare" being
-    # true and set msgzero and msgnonzero to appropriate values to
-    # use in prowlapp messages.
-    if row[2] == 1:
-        compare = '<'
-        msgzero = 'above'
-        msgnonzero = 'fallen below'
-    else:
-        compare = '>'
-        msgzero = 'below'
-        msgnonzero = 'risen above'
-    watts = row[3]
-    minutes = row[4]
-    # In the next 2 lines, the value comes from MySQL as datetime.timedelta
-    # - convert to time by adding any date to it and calling time().
-    start = (datetime.datetime.combine(localnow.date(), datetime.time())
-             + row[5]).time()
-    end = (datetime.datetime.combine(localnow.date(), datetime.time())
-           + row[6]).time()
-    message = row[7]
-    if message != '':
-        message = ' -- ' + message
-    alerted = (row[8] != 0)
-
-    localtime = (utcnow + timezone).time()
-    # Only perform alert check if localtime is inside the time range.
-    if ((end > start and (localtime < start or localtime >= end)) or
-        (end < start and (localtime >= end and localtime < start))):
-        if alerted:
-            cur.execute('SELECT name FROM channel WHERE channum='
-                        + str(channum))
-            # This assumes channel exists. # TODO: handle case where it doesn't
-            name=cur.fetchone()[0]
-            message = ('Circuit "' + name + '" is still ' + msgzero + ' '
-                       + str(watts) + ' watts and it is now outside the '
-                       'monitoring time - clearing alert')
-            alert('power alert', message, channelURL(channum))
-            cur.execute('UPDATE alert SET alerted=0 WHERE id=' + str(id))
+    # Only perform alert check if localtime is inside the time range
+    localnow = datetime.now().time()
+    if alert.end > alert.start: # Interval doesn't span midnight
+        outside_interval = not alert.start <= localnow < alert.end
+    else:   # Interval spans midnight or empty interval
+        outside_interval = alert.end <= localnow < alert.start
+    if outside_interval:
+        if alert.alerted:
+            name = gc_database.get_channel_name(alert.channum)
+            message = 'Circuit "' + name + '" is still ' + msg_still + ' ' + str(alert.watts) + \
+                ' watts and it is now outside the monitoring time - clearing alert'
+            new_alert('power alert', message, prowlapp, channel_url(alert.channum))
+            gc_database.set_alerted(alert.id, False)
         return
-    sql = ('SELECT COUNT(*) FROM used WHERE channum=' + str(channum) +\
-           ' AND stamp >= DATE_ADD("' + utcnow.isoformat() + '", INTERVAL -'
-               + str(minutes) + ' MINUTE)' +\
-           ' AND watts ' + compare + str(watts))
-    cur.execute(sql)
-    countrow = cur.fetchone()
-    # If all rows meet the criteria (i.e. no rows meet the
-    # reverse of the criteria), the alert is active - check to see
-    # if that condition has changed.
-    if (countrow[0] == 0) != alerted:
-        cur.execute('SELECT name FROM channel WHERE channum='
-                    + str(channum))
-        # This assumes channel exists. # TODO: handle case where it does not
-        name=cur.fetchone()[0]
-        if not alerted:
-            message = ('Circuit "' + name + '" has been ' + msgzero + ' '
-                       + str(watts) + ' watts for more than '
-                       + str(minutes) + ' minutes' + message)
-            alert('POWER ALERT', message, channelURL(channum))
-            cur.execute('UPDATE alert SET alerted=1 WHERE id=' + str(id))
-        else:
-            message = ('Circuit "' + name + '" has ' + msgnonzero + ' '
-                       + str(watts) + ' watts')
-            alert('power alert', message, channelURL(channum))
-            cur.execute('UPDATE alert SET alerted=0 WHERE id=' + str(id))
 
-def terminate(signum, frame):
+    # alert_triggered() returns 1 if triggered, 0 if not, -1 if no records in interval
+    alert_triggered = gc_database.alert_triggered(alert)
+
+    if alert_triggered == -1:
+        # No records in interval, so don't issue alert
+        return
+
+    # If alert is newly triggered or newly cleared, send alert via prowlapp
+    if alert_triggered != alert.alerted:
+        name = gc_database.get_channel_name(alert.channum)
+        if not alert.alerted:
+            message = 'Circuit "' + name + '" has been ' + msg_still + ' ' \
+                       + str(alert.watts) + ' watts for more than ' \
+                       + str(alert.minutes) + ' minutes'
+            if alert.message:
+                message += ': ' + alert.message
+            new_alert('POWER ALERT', message, prowlapp, channel_url(alert.channum))
+        else:
+            message = ('Circuit "' + name + '" has ' + msg_newly + ' '
+                       + str(alert.watts) + ' watts')
+            if alert.message:
+                message += ': ' + alert.message
+            new_alert('power alert', message, prowlapp, channel_url(alert.channum))
+        gc_database.set_alerted(alert.id, alert_triggered)
+
+
+def terminated(_signum, _frame):
+    '''Called when program terminates'''
+
     gclib.log('***** Stopping Greener Circuits Alerts *****')
     sys.exit()
 
-gclib.log('***** Starting Greener Circuits Alerts *****')
 
-# Set terminate handler
-signal.signal(signal.SIGTERM, terminate)
-signal.signal(signal.SIGINT, terminate)
+def main():
+    '''Main Greener Circuits Alerts function'''
 
-# Instantiate prowlapp.com interface object.
-prowl = prowl.Prowl()
+    gclib.log('***** Starting Greener Circuits Alerts *****')
 
-# Global to issue only one alert when db updates stop or restart.
-updating = True
+    # Set terminate handler
+    signal.signal(signal.SIGTERM, terminated)
+    signal.signal(signal.SIGINT, terminated)
 
-# Get time zone.
-timezone = gclib.get_time_zone()
+    # Instantiate prowlapp.com interface object
+    prowlapp = prowl.Prowl()
 
-db = None
+    # Create GCDatabase object to communicate with database
+    gc_database = GCDatabase()
 
-# Start main loop.
-while True:
-    # Wait until the start of a minute (only check alerts once per minute).
-    utcnow = gclib.sync_secs(60)
-    localnow = utcnow + timezone
+    # Main loop
+    while True:
+        # Wait until the start of a minute (only check alerts once per minute)
+        gclib.sync_secs(60)
 
-    try:
-        # Print update time.
-        gclib.log('', utcnow)
+        try:
+            # Log update time
+            gclib.log('')
 
-        # Connect or reconnect to database.
-        if db is None:
-            gclib.log('(Re)Connecting to database...')
-            db = gclib.connect_db()
+            # Verify database has been updated recently
+            if gc_database.updating_changed():
+                if gc_database.updating:
+                    new_alert('***** updates resumed *****',
+                        'Database updates have resumed', prowlapp)
+                else:
+                    new_alert('***** UPDATES STOPPED *****',
+                        'Last database update more than 1 minute ago', prowlapp)
 
-        # Call db.commit() to renew our view of the database.
-        db.commit()
+            if gc_database.updating:
+                # Check each alert in the alert table
+                alerts = gc_database.get_alerts()
+                for alert in alerts:
+                    check_alert(gc_database, alert, prowlapp)
 
-        # Get database cursor.
-        cur = db.cursor()
+        except:     #pylint: disable=bare-except
+            traceback.print_exc()
 
-        # Verify database is being updated.
-        if database_updating(cur):
+        # Ensure sync_secs() will wait until the next interval
+        time.sleep(2)
 
-            # Test each alert in the alert table.
-            cur.execute('SELECT id, channum, greater, watts, minutes, start, '
-                        'end, message, alerted from alert')
-            for row in cur.fetchall():
-                test_alert(cur, row, localnow)
 
-        # Done with this pass - close cursor.
-        cur.close()
-
-        # Ensure this loop is not done more often than once per second.
-        time.sleep(1)
-
-    except:
-
-        print('Writing stack trace to stderr')
-        print('Writing stack trace to stderr', file=sys.stderr)
-        traceback.print_exc(file=sys.stderr)   # default, but to be explicit
-        print('Writing stack trace to stdout')
-        print('Writing stack trace to stdout', file=sys.stderr)
-        traceback.print_exc(file=sys.stdout)   # TODO: remove this one when sufficiently tested
-        time.sleep(2)  # Ensure we don't get multiple exceptions per loop
-        db = None
-
+if __name__ == '__main__':
+    main()
