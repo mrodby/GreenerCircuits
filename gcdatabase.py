@@ -16,7 +16,7 @@ class GCDatabase:   #pylint: disable=too-many-instance-attributes
         '''Constructor'''
 
         self.updating = True    # True if database has been recently updated
-        self.alert_id = 1
+        self.conn = None
 
         connect_env = 'connect_gc'
         if connect_env not in os.environ:
@@ -31,9 +31,9 @@ class GCDatabase:   #pylint: disable=too-many-instance-attributes
         # To create table structures from scratch, use these:
         self.alert_table = self.define_alert_table()
         self.channel_table = self.define_channel_table()
+        self.scratchpad_table = self.define_scratchpad_table()
         self.settings_table = self.define_settings_table()
         self.used_table = self.define_used_table()
-        self.scratchpad_table = self.define_scratchpad_table()  # Copy of used, so defined here
 
 
     def auto_load_tables(self):
@@ -77,7 +77,7 @@ class GCDatabase:   #pylint: disable=too-many-instance-attributes
         return Table(
             'channel',
             self.metadata,
-            Column('channum', Integer, primary_key=True),
+            Column('channum', Integer, primary_key=True, autoincrement=False),
             Column('name', String(255)),
             Column('type', Integer),
             Column('watts', Float),
@@ -86,9 +86,15 @@ class GCDatabase:   #pylint: disable=too-many-instance-attributes
 
 
     def define_scratchpad_table(self):
-        '''Define the scratchpad table structure (a copy of used)'''
+        '''Define the scratchpad table structure (same as used except for name)'''
 
-        return self.used_table
+        return Table(
+            'scratchpad',
+            self.metadata,
+            Column('channum', Integer),
+            Column('watts', Integer),
+            Column('stamp', DateTime)
+        )
 
 
     def define_settings_table(self):
@@ -114,11 +120,51 @@ class GCDatabase:   #pylint: disable=too-many-instance-attributes
         )
 
 
+    def get_channels(self):
+        '''Get all channels from channel table'''
+
+        with self.engine.connect() as conn:
+            return conn.execute(select(self.channel_table))
+
+
+    def insert_usage(self, channum, watts, utcnow):
+        '''Insert usage into used and update channel table'''
+
+        if self.conn is None:
+            self.conn = self.engine.connect()
+        print('Inserting usage for channel', channum, 'to', watts, 'watts')
+        self.conn.execute(self.used_table.insert() \
+            .values(channum=channum, watts=watts, stamp=utcnow))
+        stmt = update(self.channel_table) \
+            .where(self.channel_table.c.channum == channum) \
+            .values(watts=watts, stamp=utcnow)
+        self.conn.execute(stmt)
+
+
+    def update_total_watts(self, utcnow):
+        '''Update total home usage in channel table'''
+
+        if self.conn is not None:
+            query = select([func.sum(self.channel_table.c.watts)]) \
+                .where(self.channel_table.c.type > 0)
+            total_watts = self.conn.execute(query).fetchone()[0]
+            print('Updating total watts to', total_watts)
+            self.insert_usage(0, total_watts, utcnow)
+
+
+    def commit(self):
+        '''Commit database after updating usage'''
+        print('Committing database')
+        if self.conn is not None:
+            self.conn.commit()
+            self.conn = None
+
+
     def delete_alerts(self):
         '''Delete all alerts in table'''
         with self.engine.begin() as conn:
             conn.execute(self.alert_table.delete())
-        self.alert_id = 1
+            conn.execute(text('ALTER TABLE alert AUTO_INCREMENT = 1'))
 
 
     def create_alert(self, channum, greater, watts, minutes, start, end, message):  #pylint: disable=too-many-arguments
@@ -130,9 +176,8 @@ class GCDatabase:   #pylint: disable=too-many-instance-attributes
         greater = 1 if greater else 0
         with self.engine.begin() as conn:
             conn.execute(self.alert_table.insert().values(
-                id=self.alert_id, channum=channum, greater=greater, watts=watts, minutes=minutes,
+                channum=channum, greater=greater, watts=watts, minutes=minutes,
                 start=start, end=end, message=message, alerted=0))
-        self.alert_id += 1
 
 
     def get_alerts(self):
