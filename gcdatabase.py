@@ -7,6 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy import MetaData, Table, Column, Integer, DateTime, String, Float
 from sqlalchemy import text, select, update, func
 from sqlalchemy.dialects.mysql import TINYINT, TIME
+from sqlalchemy.exc import OperationalError
 
 
 class GCDatabase:   #pylint: disable=too-many-instance-attributes
@@ -16,7 +17,6 @@ class GCDatabase:   #pylint: disable=too-many-instance-attributes
         '''Constructor'''
 
         self.updating = True    # True if database has been recently updated
-        self.conn = None
 
         connect_env = 'connect_gc'
         if connect_env not in os.environ:
@@ -130,34 +130,25 @@ class GCDatabase:   #pylint: disable=too-many-instance-attributes
     def insert_usage(self, channum, watts, utcnow):
         '''Insert usage into used and update channel table'''
 
-        if self.conn is None:
-            self.conn = self.engine.connect()
-        print('Inserting usage for channel', channum, 'to', watts, 'watts')
-        self.conn.execute(self.used_table.insert() \
-            .values(channum=channum, watts=watts, stamp=utcnow))
-        stmt = update(self.channel_table) \
-            .where(self.channel_table.c.channum == channum) \
-            .values(watts=watts, stamp=utcnow)
-        self.conn.execute(stmt)
-
+        # TODO: Each insert and update takes a round trip - make bulk inserts and updates
+        # TODO: Think about combining all readings from a single update into a single row
+        #print('Inserting usage for channel', channum, 'to', watts, 'watts')
+        with self.engine.connect() as conn:
+            conn.execute(self.used_table.insert() \
+                .values(channum=channum, watts=watts, stamp=utcnow))
+            conn.execute(self.channel_table.update() \
+                .where(self.channel_table.c.channum == channum) \
+                .values(watts=watts, stamp=utcnow))
 
     def update_total_watts(self, utcnow):
         '''Update total home usage in channel table'''
 
-        if self.conn is not None:
+        with self.engine.connect() as conn:
             query = select([func.sum(self.channel_table.c.watts)]) \
                 .where(self.channel_table.c.type > 0)
-            total_watts = self.conn.execute(query).fetchone()[0]
-            print('Updating total watts to', total_watts)
+            total_watts = conn.execute(query).fetchone()[0]
+            #print('Updating total watts to', total_watts)
             self.insert_usage(0, total_watts, utcnow)
-
-
-    def commit(self):
-        '''Commit database after updating usage'''
-        print('Committing database')
-        if self.conn is not None:
-            self.conn.commit()
-            self.conn = None
 
 
     def delete_alerts(self):
