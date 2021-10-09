@@ -127,9 +127,9 @@ class GCDatabase:   #pylint: disable=too-many-instance-attributes
         return Table(
             'used',
             self.metadata,
-            Column('channum', Integer),
+            Column('channum', Integer, index=True),
             Column('watts', Integer),
-            Column('stamp', DateTime)
+            Column('stamp', DateTime, index=True)
         )
 
 

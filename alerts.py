@@ -50,9 +50,9 @@ def check_alert(gc_database, alert, prowlapp):
     if outside_interval:
         if alert.alerted:
             name = gc_database.get_channel_name(alert.channum)
-            message = 'Circuit "' + name + '" is still ' + msg_still + ' ' + str(alert.watts) + \
+            message = name + '" still ' + msg_still + ' ' + str(alert.watts) + \
                 ' watts and it is now outside the monitoring time - clearing alert'
-            new_alert('power alert', message, prowlapp, channel_url(alert.channum))
+            new_alert(message, 'power alert', prowlapp, channel_url(alert.channum))
             gc_database.set_alerted(alert.id, False)
         return
 
@@ -67,18 +67,18 @@ def check_alert(gc_database, alert, prowlapp):
     if alert_triggered != alert.alerted:
         name = gc_database.get_channel_name(alert.channum)
         if not alert.alerted:
-            message = 'Circuit "' + name + '" has been ' + msg_still + ' ' \
+            message = name + '" has been ' + msg_still + ' ' \
                        + str(alert.watts) + ' watts for more than ' \
                        + str(alert.minutes) + ' minutes'
             if alert.message:
                 message += ': ' + alert.message
-            new_alert('POWER ALERT', message, prowlapp, channel_url(alert.channum))
+            new_alert(message, 'POWER ALERT', prowlapp, channel_url(alert.channum))
         else:
-            message = ('Circuit "' + name + '" has ' + msg_newly + ' '
+            message = (name + '" has ' + msg_newly + ' '
                        + str(alert.watts) + ' watts')
             if alert.message:
                 message += ': ' + alert.message
-            new_alert('power alert', message, prowlapp, channel_url(alert.channum))
+            new_alert(message, 'power alert', prowlapp, channel_url(alert.channum))
         gc_database.set_alerted(alert.id, alert_triggered)
 
 
