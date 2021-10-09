@@ -106,7 +106,7 @@ def main():
 
     # Main loop
     while True:
-        # Wait until the start of a minute (only check alerts once per minute)
+        # Check alerts once per minute
         gclib.sync_secs(60)
 
         try:
@@ -129,10 +129,9 @@ def main():
                     check_alert(gc_database, alert, prowlapp)
 
         except:     #pylint: disable=bare-except
-            traceback.print_exc()
+            traceback.print_exc(file=sys.stdout)
 
-        # Ensure sync_secs() will wait until the next interval
-        time.sleep(2)
+        time.sleep(2)  # Ensure we don't go through this loop multiple times per cycle
 
 
 if __name__ == '__main__':

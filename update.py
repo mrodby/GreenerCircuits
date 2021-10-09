@@ -159,15 +159,16 @@ def main():
         utcnow = gclib.sync_secs(update_interval)
 
         try:
-
             # Log update time
             gclib.log('')
 
+            # Perform update
             update_from_hosts(gc_database, hosts, fails, my_prowl, utcnow)
 
         except:     #pylint: disable=bare-except
             traceback.print_exc(file=sys.stdout)
-            time.sleep(2)  # Ensure we don't get multiple exceptions per update cycle
+
+        time.sleep(2)  # Ensure we don't go through this loop multiple times per update cycle
 
 
 if __name__ == '__main__':

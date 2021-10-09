@@ -5,9 +5,8 @@ import sys
 import os
 from sqlalchemy import create_engine
 from sqlalchemy import MetaData, Table, Column, Integer, DateTime, String, Float
-from sqlalchemy import text, select, update, func
+from sqlalchemy import text, select, update, delete, func
 from sqlalchemy.dialects.mysql import TINYINT, TIME
-from sqlalchemy.exc import OperationalError
 
 
 class GCDatabase:   #pylint: disable=too-many-instance-attributes
@@ -34,6 +33,20 @@ class GCDatabase:   #pylint: disable=too-many-instance-attributes
         self.scratchpad_table = self.define_scratchpad_table()
         self.settings_table = self.define_settings_table()
         self.used_table = self.define_used_table()
+
+        # Get settings
+        with self.engine.begin() as conn:
+            settings = conn.execute(select(self.settings_table)).one_or_none()
+            if settings is None:
+                self.consolidate_stamp = None
+                self.history_days = 365
+                conn.execute(self.settings_table.insert() \
+                    .values(consolidate_stamp=self.consolidate_stamp,
+                            history_days=self.history_days))
+            else:
+                self.consolidate_stamp = settings.consolidate_stamp
+                self.history_days = settings.history_days
+
 
 
     def auto_load_tables(self):
@@ -130,10 +143,11 @@ class GCDatabase:   #pylint: disable=too-many-instance-attributes
     def insert_usage(self, channum, watts, utcnow):
         '''Insert usage into used and update channel table'''
 
-        # TODO: Each insert and update takes a round trip - make bulk inserts and updates
+        # TODO: Each insert and update takes a round trip, plus a commit after both
+        #  - make bulk inserts and updates
         # TODO: Think about combining all readings from a single update into a single row
         #print('Inserting usage for channel', channum, 'to', watts, 'watts')
-        with self.engine.connect() as conn:
+        with self.engine.begin() as conn:
             conn.execute(self.used_table.insert() \
                 .values(channum=channum, watts=watts, stamp=utcnow))
             conn.execute(self.channel_table.update() \
@@ -148,7 +162,67 @@ class GCDatabase:   #pylint: disable=too-many-instance-attributes
                 .where(self.channel_table.c.type > 0)
             total_watts = conn.execute(query).fetchone()[0]
             #print('Updating total watts to', total_watts)
-            self.insert_usage(0, total_watts, utcnow)
+        self.insert_usage(0, total_watts, utcnow)
+
+
+    def get_min_used_stamp(self):
+        '''Return the earliest timestamp from used table'''
+
+        with self.engine.connect() as conn:
+            query = select([func.min(self.used_table.c.stamp)])
+            return conn.execute(query).fetchone()[0]
+
+
+    def consolidate(self, start_stamp, end_stamp):
+        '''Consolidate records in used table into 1-minute intervals'''
+
+        with self.engine.begin() as conn:
+            start = datetime.utcnow()
+            # - Clear scratchpad table
+            conn.execute(delete(self.scratchpad_table))
+            # - Consolidate appropriate rows into scratchpad table
+            # TODO: Use SQLAlchemy instead of text for these
+            query = text('INSERT INTO scratchpad '
+                'SELECT '
+                    'channum, '
+                    'AVG(watts) AS watts, '
+                    'FROM_UNIXTIME(UNIX_TIMESTAMP(stamp) DIV 60 * 60 ) AS stamp '
+                'FROM used '
+                'WHERE stamp >= "' + start_stamp.isoformat() + '" '
+                    'AND stamp < "' + end_stamp.isoformat() + '" '
+                'GROUP BY channum, UNIX_TIMESTAMP(stamp) DIV 60')
+            conn.execute(query)
+            # - Delete original rows.
+            query = text('DELETE FROM used '
+                'WHERE stamp >= "' + start_stamp.isoformat()
+                + '" AND stamp < "' + end_stamp.isoformat() + '" ')
+            conn.execute(query)
+            # - Copy from scratchpad table to original table.
+            query = text('INSERT INTO used SELECT * FROM scratchpad')
+            conn.execute(query)
+
+            # Update consolidate_stamp
+            conn.execute(self.settings_table.update() \
+                .values(consolidate_stamp=end_stamp))
+            self.consolidate_stamp = end_stamp
+
+
+        print('Done consolidating,', (datetime.utcnow() - start).total_seconds(), 'seconds')
+        sys.stdout.flush()
+
+
+    def cull(self, end_stamp):
+        '''Cull records from used table where stamp is more than history_days old'''
+
+        with self.engine.begin() as conn:
+            start = datetime.utcnow()
+            cull_start = end_stamp - timedelta(days=self.history_days)
+            print('Culling records before', cull_start.isoformat())
+            # TODO: Use SQLAlchemy instead of text for this
+            stmt = text('DELETE FROM used WHERE stamp < "' + cull_start.isoformat() + '"')
+            conn.execute(stmt)
+            print('Done culling,', (datetime.utcnow() - start).total_seconds(), 'seconds')
+            sys.stdout.flush()
 
 
     def delete_alerts(self):
