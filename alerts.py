@@ -67,14 +67,14 @@ def check_alert(gc_database, alert, prowlapp):
     if alert_triggered != alert.alerted:
         name = gc_database.get_channel_name(alert.channum)
         if not alert.alerted:
-            message = name + '" has been ' + msg_still + ' ' \
+            message = name + ' has been ' + msg_still + ' ' \
                        + str(alert.watts) + ' watts for more than ' \
                        + str(alert.minutes) + ' minutes'
             if alert.message:
                 message += ': ' + alert.message
             new_alert(message, 'POWER ALERT', prowlapp, channel_url(alert.channum))
         else:
-            message = (name + '" has ' + msg_newly + ' '
+            message = (name + ' has ' + msg_newly + ' '
                        + str(alert.watts) + ' watts')
             if alert.message:
                 message += ': ' + alert.message

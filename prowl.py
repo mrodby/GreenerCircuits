@@ -22,7 +22,7 @@ class Prowl(object):
         # Construct URL from base plus required parameters.
         url = ('http://api.prowlapp.com/publicapi/add?'
                + 'apikey=' + self.key
-               + '&application=' + urllib.parse.quote('Greener Circuits')
+               + '&application=GC'         # Abbreviate to shorten displayed message
                + '&event=' + urllib.parse.quote(event)
                + '&description=' + urllib.parse.quote(desc))
         if info_url is not None:
