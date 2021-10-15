@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="{{ url_for('static', filename= 'css/style.css') }}">
+  <link rel="icon" href="{{ url_for('static', filename= 'GreenerCircuits.png') }}" type="image/png" />
+  <link rel="shortcut icon" href="{{ url_for('static', filename= 'GreenerCircuits.ico') }}" />
+  <title>Greener Circuits Power Usage</title>
+
+  <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+
+  <script type="text/javascript">
+
+    // Load the Visualization API and the corechart package.
+    google.load("visualization", "1", {packages:["corechart"]});
+
+    // Set a callback to run when the Google Visualization API is loaded.
+    google.setOnLoadCallback(drawChart);
+
+    // Init variables for drawChart callback:
+    chartType = "ColumnChart";
+    containerId = "chart_div";
+    data = JSON.parse('{{usage | tojson}}')
+    options = {
+      title: "{{title}}",
+      chartArea:{left:50,top:30,right:10,bottom:40,width:"100%",height:"100%"},
+      legend: { position: "none" }
+    };
+
+
+    // This is the callback function which actually draws the chart
+    function drawChart(){
+      google.visualization.drawChart({
+        "containerId": containerId,
+        "dataTable": data,
+        "chartType": chartType,
+        "options": options
+      });
+    }
+  </script>
+
+</head>
+<body>
+  <h1>Greener Circuits Power Usage</h1>
+
+  Last updated {{now[:16]}}<br>
+
+  <!-- Table consists of left column with list of power and channels and right column with graph of one channel -->
+  <table width='100%'>
+    <tr>
+
+      <!-- Left column - current usage and name, where name is a link to a display for that channel -->
+      <td>
+        <table>
+          {% for chan in channels %}
+            <tr>
+              <td class="watts">{{ channel.watts }}</td>
+              <td><a href="{{ url_for('power', channel=chan.channum, pageHours=page_hours, barMinutes=bar_minutes, page=page) }}">{{ chan.name }}</a></td>
+            </tr>
+          {% endfor %}
+        </table>
+      </td>
+      <!-- Page earlier in time -->
+      <td><a href="{{ url_for('power', channel=channel, pageHours=page_hours, barMinutes=bar_minutes, page=page + 1) }}">&lt;&lt;</a></td>
+
+      <!-- Right column - chart -->
+      <td style='width:99%; vertical-align:top'>
+        <div id="chart_div" style='height:500px'></div>
+      </td>
+      <!-- Page later in time -->
+      {% if page > 0 %}
+        <td><a href="{{ url_for('power', channel=channel, pageHours=page_hours, barMinutes=bar_minutes, page=page - 1) }}">&gt;&gt;</a></td>
+      {% endif %}
+
+    </tr>
+  </table>
+
+</body>
+</html>

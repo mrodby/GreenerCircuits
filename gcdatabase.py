@@ -137,7 +137,7 @@ class GCDatabase:   #pylint: disable=too-many-instance-attributes
         '''Get all channels from channel table'''
 
         with self.engine.connect() as conn:
-            return conn.execute(select(self.channel_table))
+            return conn.execute(select(self.channel_table).where(self.channel_table.c.type!=0))
 
 
     def insert_usage(self, channum, watts, utcnow):
@@ -171,6 +171,22 @@ class GCDatabase:   #pylint: disable=too-many-instance-attributes
         with self.engine.connect() as conn:
             query = select([func.min(self.used_table.c.stamp)])
             return conn.execute(query).fetchone()[0]
+
+
+    def get_usage(self, channel, start_stamp, end_stamp, bar_seconds):
+        '''Return usage representing bars of bar_seconds each'''
+
+        with self.engine.connect() as conn:
+            # TODO: Convert from text query to SQLAlchemy calls
+            query = text("SELECT FROM_UNIXTIME(UNIX_TIMESTAMP(stamp) DIV " +
+                     str(bar_seconds) + " * " + str(bar_seconds) + ") AS stamp, " +
+                     "ROUND(AVG(watts)) AS watts " +
+                 "FROM used " +
+                 "WHERE channum = " + str(channel) +
+                      " AND stamp BETWEEN '" + start_stamp.isoformat() +
+                        "' AND '" + end_stamp.isoformat() + "' " +
+                 "GROUP BY UNIX_TIMESTAMP(stamp) DIV " + str(bar_seconds))
+            return conn.execute(query).fetchall()
 
 
     def consolidate(self, start_stamp, end_stamp):
