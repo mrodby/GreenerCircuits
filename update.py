@@ -86,7 +86,8 @@ def parse_page_and_update_database(response, host_index, chantypes, gc_database,
         if len(cells) == 3:
             channum = (int(cells[0].find(text=True)) + 100 * host_index)
             watts = int(cells[2].find(text=True))
-            # Assume channel exists in table. TODO: handle when it is not
+            if channum not in chantypes:
+                continue
             chantype = chantypes[channum]
             # Handle special types.
             if chantype == -1:
@@ -96,8 +97,6 @@ def parse_page_and_update_database(response, host_index, chantypes, gc_database,
             elif chantype == 3:
                 watts += prev_watts
             prev_watts = watts
-            if chantype == 0:
-                continue
             gc_database.insert_usage(channum, watts, utcnow)
     #gclib.log('Finished inserting into database')
 
