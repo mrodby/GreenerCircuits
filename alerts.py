@@ -20,7 +20,7 @@ import prowl
 def channel_url(channum):
     '''Return URL for channel channum'''
 
-    return 'http://' + gclib.gc_host() + '/power.php?channel=' + str(channum)
+    return 'http://' + gclib.gc_host() + '/power.html?channel=' + str(channum)
 
 
 def new_alert(event, desc, prowlapp, info_url=None):
@@ -33,14 +33,6 @@ def new_alert(event, desc, prowlapp, info_url=None):
 def check_alert(gc_database, alert, prowlapp):
     '''Check this alert'''
 
-    # Set msg_still to indicate current state and msg_newly to indicate a change
-    if alert.greater:
-        msg_still = 'above'
-        msg_newly = 'fallen below'
-    else:
-        msg_still = 'below'
-        msg_newly = 'risen above'
-
     # Only perform alert check if localtime is inside the time range
     localnow = datetime.now().time()
     if alert.end > alert.start: # Interval doesn't span midnight
@@ -49,9 +41,10 @@ def check_alert(gc_database, alert, prowlapp):
         outside_interval = alert.end <= localnow < alert.start
     if outside_interval:
         if alert.alerted:
-            name = gc_database.get_channel_name(alert.channum)
-            message = name + '" still ' + msg_still + ' ' + str(alert.watts) + \
-                ' watts and it is now outside the monitoring time - clearing alert'
+            name = alert.message if alert.message else gc_database.get_channel_name(alert.channum)
+            comp = ' > ' if alert.greater else ' < '
+            message = name + '" still ' + comp + ' ' + str(alert.watts) + \
+                'W and it is now outside the monitoring time - clearing alert'
             new_alert(message, 'power alert', prowlapp, channel_url(alert.channum))
             gc_database.set_alerted(alert.id, False)
         return
@@ -63,21 +56,17 @@ def check_alert(gc_database, alert, prowlapp):
         # No records in interval, so don't issue alert
         return
 
-    # If alert is newly triggered or newly cleared, send alert via prowlapp
+    # If alert is newly triggered or newly cleared, send alert via prowlapp and update database
     if alert_triggered != alert.alerted:
-        name = gc_database.get_channel_name(alert.channum)
-        if not alert.alerted:
-            message = name + ' has been ' + msg_still + ' ' \
-                       + str(alert.watts) + ' watts for more than ' \
-                       + str(alert.minutes) + ' minutes'
-            if alert.message:
-                message += ': ' + alert.message
+        name = alert.message if alert.message else gc_database.get_channel_name(alert.channum)
+        if alert_triggered:
+            comp = ' > ' if alert.greater else ' < '
+            message = name + comp + str(alert.watts) + 'W > ' + str(alert.minutes) + ' min'
             new_alert(message, 'POWER ALERT', prowlapp, channel_url(alert.channum))
         else:
-            message = (name + ' has ' + msg_newly + ' '
-                       + str(alert.watts) + ' watts')
-            if alert.message:
-                message += ': ' + alert.message
+            # Since alert is newly cleared, reverse comp indicator
+            comp = ' < ' if alert.greater else ' < '
+            message = name + comp + str(alert.watts) + 'W'
             new_alert(message, 'power alert', prowlapp, channel_url(alert.channum))
         gc_database.set_alerted(alert.id, alert_triggered)
 
