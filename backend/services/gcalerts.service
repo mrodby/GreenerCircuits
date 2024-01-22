@@ -1,0 +1,13 @@
+[Unit]
+Description=Greener Circuits alerts service
+Requires=network-online.target
+
+[Service]
+User=mrodby
+WorkingDirectory=/home/mrodby/github/GreenerCircuits/backend
+ExecStart=/home/mrodby/github/GreenerCircuits/backend/alerts.py
+EnvironmentFile=/home/mrodby/gcenv
+
+[Install]
+WantedBy=multi-user.target
+

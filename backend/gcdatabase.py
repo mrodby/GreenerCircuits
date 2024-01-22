@@ -158,7 +158,7 @@ class GCDatabase:   #pylint: disable=too-many-instance-attributes
         '''Update total home usage in channel table'''
 
         with self.engine.connect() as conn:
-            query = select([func.sum(self.channel_table.c.watts)]) \
+            query = select(func.sum(self.channel_table.c.watts)) \
                 .where(self.channel_table.c.type > 0)
             total_watts = conn.execute(query).fetchone()[0]
             #print('Updating total watts to', total_watts)
