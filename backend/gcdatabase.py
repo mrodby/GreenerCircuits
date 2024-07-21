@@ -289,7 +289,7 @@ class GCDatabase:   #pylint: disable=too-many-instance-attributes
         timestamp_limit = (datetime.utcnow() - timedelta(minutes=alert.minutes)).isoformat()
         with self.engine.connect() as conn:
 
-            query1 = select([func.count()]).select_from(self.used_table) \
+            query1 = select(func.count()).select_from(self.used_table) \
                 .where(self.used_table.c.channum == alert.channum) \
                 .where(self.used_table.c.stamp >= timestamp_limit)
             # Look for any records in interval opposite our condition (i.e. would disprove alert)
