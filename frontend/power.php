@@ -63,8 +63,10 @@ if ($conn->connect_error)
           $interval = number_parm("interval", "60");
           $page = number_parm("page", "0");
           $time = time() - date('Z');
-          $end = $time - $page * $hours * 3600;
+	  $end = $time - $page * $hours * 3600;
+	  $start = $end - $hours * 3600;
           $end = date('Y-m-d', $end) . 'T' . date('H:i:s', $end) . 'Z';
+          $start = date('Y-m-d', $start) . 'T' . date('H:i:s', $start) . 'Z';
 
           // get channel name and type
           $sql = "SELECT * FROM channel WHERE channum = " . $chan;
@@ -81,22 +83,24 @@ if ($conn->connect_error)
                  "WHERE channum = " . $chan .
                       " AND stamp BETWEEN DATE_ADD('" . $end .
                       "', INTERVAL -" . $hours . " HOUR) AND '" . $end . "' " .
-                 "GROUP BY UNIX_TIMESTAMP(stamp) DIV " . $interval;
-          $result = $conn->query($sql);
-          if ($result->num_rows <= 0)
-            die("No results for channel " . $chan . ", interval " . $interval);
-
+                 "GROUP BY Time";
+	  $result = $conn->query($sql);
           $total = 0;
-          while($row = mysqli_fetch_array($result)){
-            $time = $row['Time'];
-            $power = $row['Power'];
-            # note: $time is in the format YYYY-MM-DD HH:MM:SS
-            # - to work in Safari and IE a T needs to be between date and time,
-            #   and for proper time zone adjustment, a 'Z' needs to be appended
-            echo "[new Date('" . substr($time,0,10) . "T" .
-                 substr($time,11,5) . "Z')," . $power . "],";
-            $total += $power;
-          }
+          if ($result->num_rows > 0){
+            while($row = mysqli_fetch_array($result)){
+              $time = $row[0];
+              $power = $row[1];
+              # note: $time is in the format YYYY-MM-DD HH:MM:SS
+              # - to work in Safari and IE a T needs to be between date and time,
+              #   and for proper time zone adjustment, a 'Z' needs to be appended
+              echo "[new Date('" . substr($time,0,10) . "T" . substr($time,11,5) . "Z')," . $power . "],";
+	      $total += $power;
+	    }
+	  }
+	  else {
+	    echo "[new Date('" . $start . "'), 0],";
+	    echo "[new Date('" . $end . "'), 0],";
+	  }
         ?>
       ]);
 
